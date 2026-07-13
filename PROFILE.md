@@ -77,11 +77,9 @@ Ratings below are conservative and based on current evidence. “Artifact Eviden
 | Docker Compose basics             |            2.5/10 |                  1.5/10 | PostgreSQL services used through Docker Compose. Needs volume/port/container troubleshooting test.                                                             |
 | Dockerfile basics                 |            1.5/10 |                    1/10 | Cattle monitor includes a basic Dockerfile. Needs direct explanation/test.                                                                                     |
 | Git/GitHub basics                 |              2/10 |                  1.5/10 | Repos exist and commits/pushes can be done with guidance. Rebase/conflicts remain fragile.                                                                     |
-| Linux/terminal basics             |              2/10 |                  1.5/10 | Can run commands but output handling, navigation, and terminal ergonomics remain fragile.                                                                      |
-| Documentation / README            |              3/10 |                  2.5/10 | Multiple projects include READMEs with varying completeness. Can improve with guidance.                                                                        |
-| Project structure understanding   |              3/10 |                    2/10 | Multiple projects show separation of config, generation, app logic, database logic, reporting, and visualization. Explanation still needs testing.             |
-| Debugging independence            |              2/10 |                  1.5/10 | Can resolve issues with guidance; ambiguous failures cause high friction.                                                                                      |
-| Data visualization interpretation |              2/10 |                  1.5/10 | Can generate simple visual outputs, but interpretation and design reasoning need evaluation.                                                                   |
+| Linux/terminal             |              2/10 |                  1.5/10 | Can run commands but output handling, navigation, and terminal ergonomics remain fragile.                                                                      |
+                                                |
+                                                |
 | Basic reporting interpretation    |              2/10 |                  1.5/10 | Can describe report outputs with help. Needs independent summary task.                                                                                         |
 
 ## Unverified or Weakly Verified Exposure
