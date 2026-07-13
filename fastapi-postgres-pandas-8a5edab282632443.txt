@@ -1,0 +1,260 @@
+Directory structure:
+└── ehperminute-fastapi-postgres-pandas/
+    ├── database.py
+    ├── docker-compose.yml
+    ├── init_db.py
+    ├── main.py
+    ├── requirements.txt
+    ├── run.sh
+    └── setup_psql.sh
+
+================================================
+FILE: database.py
+================================================
+import psycopg2
+
+def get_connection():
+    return psycopg2.connect(
+        host="localhost",
+        port=5432,
+        database="sales_db",
+        user="user",
+        password="password"
+    )
+
+
+
+================================================
+FILE: docker-compose.yml
+================================================
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: sales_postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: sales_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+
+
+
+================================================
+FILE: init_db.py
+================================================
+import time
+from database import get_connection
+
+while True:
+    try:
+        conn = get_connection()
+        break
+    except Exception:
+        print("Waiting for PostgreSQL...")
+        time.sleep(1)
+
+cursor = conn.cursor()
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS customers (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    country TEXT NOT NULL
+);
+""")
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS products (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    price NUMERIC NOT NULL
+);
+""")
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS sales (
+    id SERIAL PRIMARY KEY,
+    customer_id INTEGER NOT NULL REFERENCES customers(id),
+    product_id INTEGER NOT NULL REFERENCES products(id),
+    quantity INTEGER NOT NULL,
+    sale_date DATE NOT NULL
+);
+""")
+
+
+cursor.execute("""
+INSERT INTO customers (name, country)
+VALUES
+('Alice', 'Mexico'),
+('Bob', 'USA'),
+('Carlos', 'Mexico')
+ON CONFLICT DO NOTHING;
+""")
+
+cursor.execute("""
+INSERT INTO products (name, category, price)
+VALUES
+('Laptop', 'Electronics', 12000),
+('Mouse', 'Electronics', 300),
+('Notebook', 'Stationery', 80)
+ON CONFLICT DO NOTHING;
+""")
+
+cursor.execute("""
+INSERT INTO sales (customer_id, product_id, quantity, sale_date)
+VALUES
+(1, 1, 1, '2026-06-27'),
+(1, 2, 2, '2026-06-27'),
+(2, 3, 5, '2026-06-28');
+""")
+conn.commit()
+cursor.close()
+conn.close()
+
+print("Database initialized")
+
+
+
+================================================
+FILE: main.py
+================================================
+from fastapi import FastAPI
+from database import get_connection
+
+app = FastAPI()
+
+@app.get("/stats/revenue")
+def get_revenue():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""SELECT SUM(p.price * s.quantity)                      
+                      FROM products p 
+                          JOIN sales s ON s.product_id = p.id;""")
+    revenue = cursor.fetchone()[0]
+    if revenue is None:
+        revenue = 0
+    cursor.close()
+    conn.close()
+    return {"total_revenue": revenue}
+
+
+@app.get("/stats/products_revenue")
+def get_products_revenue():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+                    SELECT p.id, p.name, SUM(p.price * s.quantity)  AS revenue                    
+                    FROM products p 
+                        JOIN sales s ON s.product_id = p.id
+                    GROUP BY p.id, p.name
+                    ORDER BY revenue DESC;
+                    """)
+    rows = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+    return {"revenue_products": [{"id": product_id, "name": product_name, "revenue": revenue} 
+                                    for product_id, product_name, revenue in rows]}
+
+@app.get("/stats/customers_revenue")
+def customers_revenue():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+                    SELECT c.id, c.name, SUM(p.price * s.quantity)  AS revenue                    
+                    FROM products p 
+                        JOIN sales s ON s.product_id = p.id
+                        JOIN customers c ON s.customer_id = c.id
+                    GROUP BY c.id, c.name
+                    ORDER BY revenue DESC;
+                    """)
+    rows = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+    return {"revenue_customers": [{"id": customer_id, "name": customer_name, "revenue": revenue} 
+                                    for customer_id, customer_name, revenue in rows]}
+
+@app.get("/stats/avg_order")
+def avg_order():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT AVG(p.price * s.quantity) AS avg_order_value
+        FROM sales s
+        JOIN products p ON s.product_id = p.id;
+    """)
+
+    avg_value = cursor.fetchone()[0]
+
+    cursor.close()
+    conn.close()
+
+    if avg_value is None:
+        avg_value = 0
+
+    return {"avg_order_value": avg_value}
+
+
+@app.get("/stats/revenue_date")
+def revenue_date():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT s.sale_date, SUM(p.price * s.quantity) AS revenue
+        FROM sales s
+            JOIN products p ON s.product_id = p.id
+        GROUP BY s.sale_date
+        ORDER BY s.sale_date;
+    """)
+
+    rows = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    
+
+    return {"revenue_by_date": [{"date": date, "revenue": revenue}
+                                for date, revenue in rows]}
+
+
+
+================================================
+FILE: requirements.txt
+================================================
+psycopg2-binary
+uvicorn
+fastapi
+
+
+================================================
+FILE: run.sh
+================================================
+#!/bin/bash
+pip install -r requirements.txt
+docker compose up -d
+
+python init_db.py
+
+python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+
+
+================================================
+FILE: setup_psql.sh
+================================================
+sudo apt update
+sudo apt install postgresql-client -y
+psql postgresql://user:password@127.0.0.1:5432/sales_db
+

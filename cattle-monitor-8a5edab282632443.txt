@@ -1,0 +1,994 @@
+Directory structure:
+└── ehperminute-cattle-monitor/
+    ├── README.md
+    ├── app.py
+    ├── app_.py
+    ├── config.py
+    ├── Dockerfile
+    ├── generate_data.py
+    ├── generate_monitoring_data.py
+    ├── requirements.txt
+    ├── run_demo.py
+    ├── train.py
+    ├── .dockerignore
+    └── templates/
+        ├── cow_detail.html
+        └── index.html
+
+================================================
+FILE: README.md
+================================================
+# cattle-monitor
+
+# Cattle Disease Detection System
+
+## Features
+- Real + synthetic data pipeline
+- ML-based disease prediction
+- Early detection focus
+
+## How to run
+
+python run_demo.py
+
+
+
+================================================
+FILE: app.py
+================================================
+import os
+import joblib
+import pandas as pd
+from flask import Flask, render_template, abort
+
+from config import FEATURES, MODEL_PATH, MONITORING_DATA_PATH
+
+app = Flask(__name__)
+
+model = None
+if os.path.exists(MODEL_PATH):
+    model = joblib.load(MODEL_PATH)
+
+
+def classify_status(sick_probability: float) -> str:
+    if sick_probability >= 70:
+        return "High risk"
+    if sick_probability >= 40:
+        return "Review"
+    return "Normal"
+
+
+def build_recommendation(row) -> str:
+    temp = row["Body_Temperature"]
+    cough = row["Coughing"]
+    diarrhea = row["Diarrhea"]
+    appetite_loss = row["Appetite_Loss"]
+    hr = row["Heart_Rate"]
+    sick_probability = row["Sick_Probability"]
+
+    if temp > 39.5 and cough == 1:
+        return "Respiratory follow-up recommended."
+    if diarrhea == 1 and appetite_loss == 1:
+        return "Digestive and hydration review recommended."
+    if temp > 39.5 and hr > 85:
+        return "General clinical review recommended."
+    if sick_probability >= 40:
+        return "Veterinary review and closer monitoring recommended."
+    return "Continue routine monitoring."
+
+
+def prepare_dashboard_data():
+    if model is None:
+        raise RuntimeError("Model file not found. Run train.py first.")
+    if not os.path.exists(MONITORING_DATA_PATH):
+        raise RuntimeError(
+            f"Monitoring dataset not found at {MONITORING_DATA_PATH}. Run generate_monitoring_data.py first."
+        )
+
+    df = pd.read_csv(MONITORING_DATA_PATH).copy()
+    df["Observation_Date"] = pd.to_datetime(df["Observation_Date"])
+
+    X = df[FEATURES]
+    predictions = model.predict(X)
+
+    probs = model.predict_proba(X)
+    classes = list(model.classes_)
+
+    healthy_idx = classes.index("healthy")
+    sick_idx = classes.index("sick")
+
+    df["Prediction"] = predictions
+    df["Healthy_Probability"] = (probs[:, healthy_idx] * 100).round(2)
+    df["Sick_Probability"] = (probs[:, sick_idx] * 100).round(2)
+    df["Status"] = df["Sick_Probability"].apply(classify_status)
+    df["Recommendation"] = df.apply(build_recommendation, axis=1)
+
+    return df
+
+
+@app.route("/")
+def index():
+    try:
+        df = prepare_dashboard_data()
+
+        latest = (
+            df.sort_values(["Cow_ID", "Observation_Date"])
+              .groupby("Cow_ID", as_index=False)
+              .tail(1)
+              .sort_values("Sick_Probability", ascending=False)
+        )
+
+        summary = {
+            "total_cows": latest["Cow_ID"].nunique(),
+            "high_risk": (latest["Status"] == "High risk").sum(),
+            "review": (latest["Status"] == "Review").sum(),
+            "normal": (latest["Status"] == "Normal").sum(),
+        }
+
+        cows = latest.to_dict(orient="records")
+        return render_template("index.html", cows=cows, summary=summary, error=None)
+
+    except Exception as exc:
+        return render_template("index.html", cows=[], summary=None, error=str(exc))
+
+
+@app.route("/cow/<cow_id>")
+def cow_detail(cow_id):
+    try:
+        df = prepare_dashboard_data()
+        history = df[df["Cow_ID"] == cow_id].sort_values("Observation_Date", ascending=False)
+
+        if history.empty:
+            abort(404)
+
+        latest = history.iloc[0].to_dict()
+        history_records = history.to_dict(orient="records")
+
+        return render_template(
+            "cow_detail.html",
+            cow=latest,
+            history=history_records
+        )
+    except Exception as exc:
+        abort(500, description=str(exc))
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=False)
+
+
+
+================================================
+FILE: app_.py
+================================================
+
+import os
+import joblib
+import pandas as pd
+from flask import Flask, render_template, request
+
+from config import FEATURES, MODEL_PATH
+
+app = Flask(__name__)
+
+model = None
+if os.path.exists(MODEL_PATH):
+    model = joblib.load(MODEL_PATH)
+
+
+def parse_checkbox(name: str) -> int:
+    return 1 if request.form.get(name) == "on" else 0
+
+
+@app.route("/", methods=["GET", "POST"])
+def index():
+    result = None
+    probability = None
+    error = None
+
+    if request.method == "POST":
+        if model is None:
+            error = "Model file not found. Train the model first."
+            return render_template("index.html", result=result, probability=probability, error=error)
+
+        try:
+            row = {
+                "Age": float(request.form["Age"]),
+                "Weight": float(request.form["Weight"]),
+                "Body_Temperature": float(request.form["Body_Temperature"]),
+                "Heart_Rate": float(request.form["Heart_Rate"]),
+                "Appetite_Loss": parse_checkbox("Appetite_Loss"),
+                "Vomiting": parse_checkbox("Vomiting"),
+                "Diarrhea": parse_checkbox("Diarrhea"),
+                "Coughing": parse_checkbox("Coughing"),
+            }
+
+            df_input = pd.DataFrame([row], columns=FEATURES)
+
+            pred = model.predict(df_input)[0]
+            result = pred
+
+            if hasattr(model, "predict_proba"):
+                proba = model.predict_proba(df_input)[0]
+                classes = list(model.classes_)
+                probability = {
+                    classes[i]: round(float(proba[i]) * 100, 2)
+                    for i in range(len(classes))
+                }
+
+        except Exception as exc:
+            error = f"Invalid input: {exc}"
+
+    return render_template(
+        "index.html",
+        result=result,
+        probability=probability,
+        error=error,
+    )
+
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=False)
+
+
+
+================================================
+FILE: config.py
+================================================
+FEATURES = [
+    "Age",
+    "Weight",
+    "Body_Temperature",
+    "Heart_Rate",
+    "Appetite_Loss",
+    "Vomiting",
+    "Diarrhea",
+    "Coughing",
+]
+
+TARGET = "Disease"
+
+DATA_PATH = "data/final_data.csv"
+MODEL_PATH = "model/disease_model.joblib"
+MONITORING_DATA_PATH = "data/monitoring_data.csv"
+
+
+
+================================================
+FILE: Dockerfile
+================================================
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+EXPOSE 5000
+
+CMD ["python", "app.py"]
+
+
+
+================================================
+FILE: generate_data.py
+================================================
+"""
+import pandas as pd
+import numpy as np
+import kagglehub
+from config import FEATURES
+
+def augment_data(df, n_times=3):
+    augmented = []
+
+    for _ in range(n_times):
+        noisy = df.copy()
+
+        for col in ["Age","Weight","Body_Temperature","Heart_Rate"]:
+            noise = np.random.normal(0, 0.05, size=len(df))
+            noisy[col] = noisy[col].astype(float) * (1 + noise)
+
+        for col in ["Appetite_Loss","Vomiting","Diarrhea","Coughing"]:
+            flip = np.random.rand(len(df)) < 0.05
+            noisy.loc[flip, col] = 1 - noisy.loc[flip, col]
+
+        augmented.append(noisy)
+
+    return pd.concat(augmented, ignore_index=True)
+
+
+def generate_healthy(n):
+    return pd.DataFrame({
+        "Age": np.random.randint(2, 10, n),
+        "Weight": np.random.normal(500, 50, n),
+        "Body_Temperature": np.random.normal(38.5, 0.3, n),
+        "Heart_Rate": np.random.normal(70, 8, n),
+
+        "Appetite_Loss": np.random.choice([0,1], n, p=[0.95, 0.05]),
+        "Vomiting": np.random.choice([0,1], n, p=[0.95, 0.05]),
+        "Diarrhea": np.random.choice([0,1], n, p=[0.95, 0.05]),
+        "Coughing": np.random.choice([0,1], n, p=[0.95, 0.05]),
+
+        "Disease": "healthy"
+    })
+
+
+def build_dataset():
+    path = kagglehub.dataset_download("shijo96john/animal-disease-prediction")
+    csv_path = path + "/cleaned_animal_disease_prediction.csv"
+    df = pd.read_csv(csv_path)
+
+    df = df[df["Animal_Type"] == "Cow"].copy()
+    df.rename(columns={'Disease_Prediction':'Disease'}, inplace=True)
+
+    df.replace("Yes", 1, inplace=True)
+    df.replace("No", 0, inplace=True)
+
+    df['Body_Temperature'] = df['Body_Temperature'].str.extract(r'(\d+\.?\d*)').astype(float)
+
+    df_sick = augment_data(df, n_times=5)
+    df_sick["Disease"] = "sick"
+
+    df_healthy = generate_healthy(len(df_sick))
+
+    df_final = pd.concat([
+        df_sick[FEATURES + ["Disease"]],
+        df_healthy[FEATURES + ["Disease"]]
+    ]).sample(frac=1).reset_index(drop=True)
+
+    return df_final
+
+
+
+
+
+
+
+import os
+import pandas as pd
+import numpy as np
+import kagglehub
+from config import FEATURES, DATA_PATH
+
+
+def augment_data(df: pd.DataFrame, n_times: int = 3) -> pd.DataFrame:
+    augmented = []
+
+    for _ in range(n_times):
+        noisy = df.copy()
+
+        for col in ["Age", "Weight", "Body_Temperature", "Heart_Rate"]:
+            noise = np.random.normal(0, 0.05, size=len(df))
+            noisy[col] = noisy[col].astype(float) * (1 + noise)
+
+        for col in ["Appetite_Loss", "Vomiting", "Diarrhea", "Coughing"]:
+            flip = np.random.rand(len(df)) < 0.05
+            noisy.loc[flip, col] = 1 - noisy.loc[flip, col]
+
+        augmented.append(noisy)
+
+    return pd.concat(augmented, ignore_index=True)
+
+
+def generate_healthy(n: int) -> pd.DataFrame:
+    return pd.DataFrame({
+        "Age": np.random.randint(2, 10, n),
+        "Weight": np.random.normal(500, 50, n),
+        "Body_Temperature": np.random.normal(38.5, 0.3, n),
+        "Heart_Rate": np.random.normal(70, 8, n),
+        "Appetite_Loss": np.random.choice([0, 1], n, p=[0.95, 0.05]),
+        "Vomiting": np.random.choice([0, 1], n, p=[0.95, 0.05]),
+        "Diarrhea": np.random.choice([0, 1], n, p=[0.95, 0.05]),
+        "Coughing": np.random.choice([0, 1], n, p=[0.95, 0.05]),
+        "Disease": "healthy",
+    })
+
+
+def build_dataset() -> pd.DataFrame:
+    path = kagglehub.dataset_download("shijo96john/animal-disease-prediction")
+    csv_path = os.path.join(path, "cleaned_animal_disease_prediction.csv")
+    df = pd.read_csv(csv_path)
+
+    df = df[df["Animal_Type"] == "Cow"].copy()
+    df.rename(columns={"Disease_Prediction": "Disease"}, inplace=True)
+
+    df.replace("Yes", 1, inplace=True)
+    df.replace("No", 0, inplace=True)
+
+    df["Body_Temperature"] = (
+        df["Body_Temperature"]
+        .astype(str)
+        .str.extract(r"(\d+\.?\d*)")[0]
+        .astype(float)
+    )
+
+    df_sick = augment_data(df, n_times=5)
+    df_sick["Disease"] = "sick"
+
+    df_healthy = generate_healthy(len(df_sick))
+
+    df_final = pd.concat(
+        [
+            df_sick[FEATURES + ["Disease"]],
+            df_healthy[FEATURES + ["Disease"]],
+        ]
+    ).sample(frac=1, random_state=42).reset_index(drop=True)
+
+    return df_final
+
+
+def main() -> None:
+    os.makedirs("data", exist_ok=True)
+    df_final = build_dataset()
+    df_final.to_csv(DATA_PATH, index=False)
+    print(f"Dataset saved to {DATA_PATH}")
+    print(df_final.head())
+
+
+if __name__ == "__main__":
+    main()
+"""
+
+import os
+import pandas as pd
+import numpy as np
+import kagglehub
+from config import FEATURES, DATA_PATH
+
+
+def augment_data(df, n_times=3):
+    augmented = []
+
+    for _ in range(n_times):
+        noisy = df.copy()
+
+        for col in ["Age", "Weight", "Body_Temperature", "Heart_Rate"]:
+            noise = np.random.normal(0, 0.05, size=len(df))
+            noisy[col] = noisy[col].astype(float) * (1 + noise)
+
+        for col in ["Appetite_Loss", "Vomiting", "Diarrhea", "Coughing"]:
+            flip = np.random.rand(len(df)) < 0.05
+            noisy.loc[flip, col] = 1 - noisy.loc[flip, col]
+
+        augmented.append(noisy)
+
+    return pd.concat(augmented, ignore_index=True)
+
+
+def generate_healthy(n):
+    return pd.DataFrame({
+        "Age": np.random.randint(2, 10, n),
+        "Weight": np.random.normal(500, 50, n),
+        "Body_Temperature": np.random.normal(38.5, 0.3, n),
+        "Heart_Rate": np.random.normal(70, 8, n),
+        "Appetite_Loss": np.random.choice([0, 1], n, p=[0.95, 0.05]),
+        "Vomiting": np.random.choice([0, 1], n, p=[0.95, 0.05]),
+        "Diarrhea": np.random.choice([0, 1], n, p=[0.95, 0.05]),
+        "Coughing": np.random.choice([0, 1], n, p=[0.95, 0.05]),
+        "Disease": "healthy"
+    })
+
+
+def build_dataset():
+    path = kagglehub.dataset_download("shijo96john/animal-disease-prediction")
+    csv_path = os.path.join(path, "cleaned_animal_disease_prediction.csv")
+    df = pd.read_csv(csv_path)
+
+    df = df[df["Animal_Type"] == "Cow"].copy()
+    df.rename(columns={"Disease_Prediction": "Disease"}, inplace=True)
+
+    df.replace("Yes", 1, inplace=True)
+    df.replace("No", 0, inplace=True)
+
+    df["Body_Temperature"] = (
+        df["Body_Temperature"]
+        .astype(str)
+        .str.extract(r"(\d+\.?\d*)")[0]
+        .astype(float)
+    )
+
+    df_sick = augment_data(df, n_times=5)
+    df_sick["Disease"] = "sick"
+
+    df_healthy = generate_healthy(len(df_sick))
+
+    df_final = pd.concat([
+        df_sick[FEATURES + ["Disease"]],
+        df_healthy[FEATURES + ["Disease"]]
+    ]).sample(frac=1, random_state=42).reset_index(drop=True)
+
+    return df_final
+
+
+if __name__ == "__main__":
+    os.makedirs("data", exist_ok=True)
+    df_final = build_dataset()
+    df_final.to_csv(DATA_PATH, index=False)
+    print(f"Dataset saved to {DATA_PATH}")
+    print(df_final.head())
+
+
+
+================================================
+FILE: generate_monitoring_data.py
+================================================
+import os
+import numpy as np
+import pandas as pd
+from datetime import datetime, timedelta
+
+from config import DATA_PATH, MONITORING_DATA_PATH
+
+np.random.seed(42)
+
+NUM_COWS = 10
+NUM_DAYS = 12
+NUM_SICK_COWS = 2
+
+
+def clamp(value, low, high):
+    return max(low, min(high, value))
+
+
+def make_date(day_index: int) -> str:
+    start_date = datetime.today().date() - timedelta(days=NUM_DAYS - 1)
+    return str(start_date + timedelta(days=day_index))
+
+
+def build_monitoring_dataset():
+    if not os.path.exists(DATA_PATH):
+        raise FileNotFoundError(
+            f"Base dataset not found at {DATA_PATH}. Run generate_data.py first."
+        )
+
+    df = pd.read_csv(DATA_PATH)
+
+    healthy_pool = df[df["Disease"] == "healthy"].copy()
+    sick_pool = df[df["Disease"] == "sick"].copy()
+
+    if healthy_pool.empty or sick_pool.empty:
+        raise ValueError("The source dataset must contain both healthy and sick rows.")
+
+    rows = []
+    sick_cow_ids = set(np.random.choice(range(1, NUM_COWS + 1), size=NUM_SICK_COWS, replace=False))
+
+    for cow_num in range(1, NUM_COWS + 1):
+        cow_id = f"COW-{cow_num:04d}"
+
+        base_healthy = healthy_pool.sample(1, random_state=np.random.randint(0, 100000)).iloc[0]
+
+        sick_window = None
+        sick_template = None
+
+        if cow_num in sick_cow_ids:
+            start = np.random.randint(4, 8)
+            length = np.random.randint(2, 5)
+            end = min(start + length - 1, NUM_DAYS - 1)
+            sick_window = (start, end)
+            sick_template = sick_pool.sample(1, random_state=np.random.randint(0, 100000)).iloc[0]
+
+        for day_index in range(NUM_DAYS):
+            date_str = make_date(day_index)
+
+            age = int(base_healthy["Age"])
+            weight = float(base_healthy["Weight"]) + np.random.normal(0, 4)
+            temp = float(base_healthy["Body_Temperature"]) + np.random.normal(0, 0.15)
+            hr = float(base_healthy["Heart_Rate"]) + np.random.normal(0, 3)
+
+            appetite_loss = int(np.random.choice([0, 1], p=[0.95, 0.05]))
+            vomiting = int(np.random.choice([0, 1], p=[0.98, 0.02]))
+            diarrhea = int(np.random.choice([0, 1], p=[0.95, 0.05]))
+            coughing = int(np.random.choice([0, 1], p=[0.94, 0.06]))
+            disease = "healthy"
+
+            if sick_window and sick_window[0] <= day_index <= sick_window[1]:
+                # Progression factor inside sick window
+                progress = (day_index - sick_window[0] + 1) / (sick_window[1] - sick_window[0] + 1)
+
+                temp = float(base_healthy["Body_Temperature"]) + np.random.uniform(0.8, 1.6) * progress
+                hr = float(base_healthy["Heart_Rate"]) + np.random.uniform(8, 18) * progress
+                weight = float(base_healthy["Weight"]) + np.random.normal(-3 * progress, 4)
+
+                appetite_loss = int(sick_template["Appetite_Loss"]) if np.random.rand() < 0.8 else appetite_loss
+                vomiting = int(sick_template["Vomiting"]) if np.random.rand() < 0.5 else vomiting
+                diarrhea = int(sick_template["Diarrhea"]) if np.random.rand() < 0.7 else diarrhea
+                coughing = int(sick_template["Coughing"]) if np.random.rand() < 0.7 else coughing
+                disease = "sick"
+
+            row = {
+                "Cow_ID": cow_id,
+                "Observation_Date": date_str,
+                "Age": age,
+                "Weight": round(clamp(weight, 300, 800), 2),
+                "Body_Temperature": round(clamp(temp, 37.5, 41.5), 2),
+                "Heart_Rate": round(clamp(hr, 45, 120), 2),
+                "Appetite_Loss": appetite_loss,
+                "Vomiting": vomiting,
+                "Diarrhea": diarrhea,
+                "Coughing": coughing,
+                "Disease": disease,
+            }
+            rows.append(row)
+
+    monitoring_df = pd.DataFrame(rows)
+    return monitoring_df
+
+
+if __name__ == "__main__":
+    os.makedirs("data", exist_ok=True)
+    monitoring_df = build_monitoring_dataset()
+    monitoring_df.to_csv(MONITORING_DATA_PATH, index=False)
+
+    print(f"Monitoring dataset saved to {MONITORING_DATA_PATH}")
+    print(monitoring_df.head(10))
+    print("\nRows:", len(monitoring_df))
+    print("Unique cows:", monitoring_df['Cow_ID'].nunique())
+
+
+
+================================================
+FILE: requirements.txt
+================================================
+pandas
+numpy
+scikit-learn
+matplotlib
+fastapi
+uvicorn
+flask
+pandas
+numpy
+scikit-learn
+joblib
+kagglehub
+matplotlib
+
+
+
+================================================
+FILE: run_demo.py
+================================================
+
+import os
+import subprocess
+import sys
+from config import DATA_PATH, MODEL_PATH
+
+
+def run_step(label: str, command: list[str]) -> None:
+    print(f"\n=== {label} ===")
+    result = subprocess.run(command)
+    if result.returncode != 0:
+        print(f"\nStep failed: {label}")
+        sys.exit(result.returncode)
+
+
+def main() -> None:
+    if not os.path.exists(DATA_PATH):
+        run_step("Generating dataset", [sys.executable, "generate_data.py"])
+    else:
+        print(f"\nDataset already exists at {DATA_PATH}")
+
+    if not os.path.exists(MODEL_PATH):
+        run_step("Training model", [sys.executable, "train.py"])
+    else:
+        print(f"\nModel already exists at {MODEL_PATH}")
+    run_step("Launching demo app", [sys.executable, "generate_monitoring_data.py"])
+    run_step("Launching demo app", [sys.executable, "app.py"])
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+================================================
+FILE: train.py
+================================================
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
+from config import FEATURES, TARGET
+
+
+df = pd.read_csv("data/final_data.csv")  
+
+X = df[FEATURES]
+y = df[TARGET]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+model = RandomForestClassifier()
+model.fit(X_train, y_train)
+
+preds = model.predict(X_test)
+
+print(classification_report(y_test, preds))
+print(confusion_matrix(y_test, preds))
+
+
+
+
+
+import os
+import joblib
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix
+
+from config import FEATURES, TARGET, DATA_PATH, MODEL_PATH
+
+
+def main() -> None:
+    df = pd.read_csv(DATA_PATH)
+
+    X = df[FEATURES]
+    y = df[TARGET]
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.2,
+        random_state=42,
+        stratify=y,
+    )
+
+    model = RandomForestClassifier(random_state=42)
+    model.fit(X_train, y_train)
+
+    preds = model.predict(X_test)
+
+    print("Classification Report:")
+    print(classification_report(y_test, preds))
+    print("Confusion Matrix:")
+    print(confusion_matrix(y_test, preds))
+
+    os.makedirs("model", exist_ok=True)
+    joblib.dump(model, MODEL_PATH)
+    print(f"Model saved to {MODEL_PATH}")
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+================================================
+FILE: .dockerignore
+================================================
+__pycache__/
+*.pyc
+.venv/
+venv/
+.git/
+
+
+
+================================================
+FILE: templates/cow_detail.html
+================================================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ cow["Cow_ID"] }} - Case Detail</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 32px; }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            background: #fafafa;
+        }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th { background: #f4f4f4; }
+        .pill {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .high { background: #ffd9d9; }
+        .review { background: #fff1cc; }
+        .normal { background: #dff3df; }
+        a.button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 8px 12px;
+            text-decoration: none;
+            border: 1px solid #bbb;
+            border-radius: 6px;
+            color: #222;
+        }
+    </style>
+</head>
+<body>
+    <h1>Case Detail: {{ cow["Cow_ID"] }}</h1>
+
+    <div class="card">
+        <h2>Latest Status</h2>
+        <p><strong>Date:</strong> {{ cow["Observation_Date"].strftime("%Y-%m-%d") if cow["Observation_Date"] else "" }}</p>
+        <p><strong>Prediction:</strong> {{ cow["Prediction"] }}</p>
+        <p><strong>Sick Probability:</strong> {{ cow["Sick_Probability"] }}%</p>
+        <p><strong>Healthy Probability:</strong> {{ cow["Healthy_Probability"] }}%</p>
+        <p>
+            <strong>Status:</strong>
+            {% if cow["Status"] == "High risk" %}
+                <span class="pill high">{{ cow["Status"] }}</span>
+            {% elif cow["Status"] == "Review" %}
+                <span class="pill review">{{ cow["Status"] }}</span>
+            {% else %}
+                <span class="pill normal">{{ cow["Status"] }}</span>
+            {% endif %}
+        </p>
+        <p><strong>Recommendation:</strong> {{ cow["Recommendation"] }}</p>
+    </div>
+
+    <div class="card">
+        <h2>Observation History</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Temperature</th>
+                    <th>Heart Rate</th>
+                    <th>Appetite Loss</th>
+                    <th>Vomiting</th>
+                    <th>Diarrhea</th>
+                    <th>Coughing</th>
+                    <th>Sick Probability</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in history %}
+                <tr>
+                    <td>{{ row["Observation_Date"].strftime("%Y-%m-%d") if row["Observation_Date"] else "" }}</td>
+                    <td>{{ row["Body_Temperature"] }}</td>
+                    <td>{{ row["Heart_Rate"] }}</td>
+                    <td>{{ row["Appetite_Loss"] }}</td>
+                    <td>{{ row["Vomiting"] }}</td>
+                    <td>{{ row["Diarrhea"] }}</td>
+                    <td>{{ row["Coughing"] }}</td>
+                    <td>{{ row["Sick_Probability"] }}%</td>
+                    <td>{{ row["Status"] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <a class="button" href="/">Back to dashboard</a>
+</body>
+</html>
+
+
+
+================================================
+FILE: templates/index.html
+================================================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Herd Monitoring Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 32px; }
+        h1 { margin-bottom: 8px; }
+        .cards { display: flex; gap: 16px; margin: 20px 0; flex-wrap: wrap; }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 16px;
+            min-width: 170px;
+            background: #fafafa;
+        }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th { background: #f4f4f4; }
+        .pill {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .high { background: #ffd9d9; }
+        .review { background: #fff1cc; }
+        .normal { background: #dff3df; }
+        .error {
+            background: #ffe5e5;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        a.button {
+            display: inline-block;
+            padding: 6px 10px;
+            text-decoration: none;
+            border: 1px solid #bbb;
+            border-radius: 6px;
+            color: #222;
+        }
+    </style>
+</head>
+<body>
+    <h1>Herd Monitoring Dashboard</h1>
+    <p>Latest observation per cow, sorted by sick probability in descending order.</p>
+
+    {% if error %}
+        <div class="error"><strong>Error:</strong> {{ error }}</div>
+    {% endif %}
+
+    {% if summary %}
+    <div class="cards">
+        <div class="card"><strong>Total cows</strong><br>{{ summary.total_cows }}</div>
+        <div class="card"><strong>High risk</strong><br>{{ summary.high_risk }}</div>
+        <div class="card"><strong>Review</strong><br>{{ summary.review }}</div>
+        <div class="card"><strong>Normal</strong><br>{{ summary.normal }}</div>
+    </div>
+    {% endif %}
+
+    {% if cows %}
+    <table>
+        <thead>
+            <tr>
+                <th>Cow ID</th>
+                <th>Date</th>
+                <th>Prediction</th>
+                <th>Sick Probability</th>
+                <th>Status</th>
+                <th>Recommendation</th>
+                <th>Case</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cow in cows %}
+            <tr>
+                <td>{{ cow["Cow_ID"] }}</td>
+                <td>{{ cow["Observation_Date"].strftime("%Y-%m-%d") if cow["Observation_Date"] else "" }}</td>
+                <td>{{ cow["Prediction"] }}</td>
+                <td>{{ cow["Sick_Probability"] }}%</td>
+                <td>
+                    {% if cow["Status"] == "High risk" %}
+                        <span class="pill high">{{ cow["Status"] }}</span>
+                    {% elif cow["Status"] == "Review" %}
+                        <span class="pill review">{{ cow["Status"] }}</span>
+                    {% else %}
+                        <span class="pill normal">{{ cow["Status"] }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ cow["Recommendation"] }}</td>
+                <td><a class="button" href="/cow/{{ cow['Cow_ID'] }}">View case</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</body>
+</html>
+
+

@@ -1,0 +1,455 @@
+Directory structure:
+└── ehperminute-synthetic-geo-data-cdmx/
+    ├── README.md
+    ├── requirements.txt
+    └── src/
+        ├── generate_population.py
+        ├── geospatial_processing.py
+        ├── simulate_dropout.py
+        ├── sql_analytics.py
+        └── visualizations.py
+
+================================================
+FILE: README.md
+================================================
+# synthetic-geo-data
+# Education Analytics Simulation: Student Trajectories, Dropout Prediction & Geospatial Risk Mapping
+
+
+
+### This project builds a synthetic, end-to-end data pipeline that generates student records, simulates semester-level outcomes, aggregates results by neighborhood, and visualizes them on a map.
+
+This repository demonstrates a reproducible data workflow combining synthetic data generation, geospatial processing, predictive modeling, and visualization. It is designed to be run in **Google Colab** (no local installation required).
+
+---
+
+## 📂 Project structure
+```
+synthetic-geo-data/
+│
+├── data/
+│ ├── raw/
+│ ├── interim/
+│ └── processed/
+│
+├── notebooks/
+│ └── education_analytics_simulation.ipynb
+│
+├── src/
+│ ├── generate_population.py
+│ ├── simulate_dropout.py
+│ ├── geospatial_processing.py
+│ └── visualizations.py
+│
+├── requirements.txt
+├── README.md
+├── README_es.md
+└── .gitignore
+```
+![](2025-12-1421-37-58.png)
+![](2025-12-1421-35-29.png)
+
+---
+
+## 🚀 Quick start (Google Colab)
+
+1. Open the notebook in Colab [CDMX synthetic dropout.ipynb](https://colab.research.google.com/drive/1sneX2ZAtxctFCfk7WDqiMGeSuMmE_BJU?usp=sharing)
+
+
+2. Run the notebook cells in order (`Runtime -> Run all` or `Ctrl + F9`). The notebook will:
+   - reference official GeoData,
+   - generate synthetic student data,
+   - create a local SQLite database (in Colab environment),
+   - run a logistic regression to estimate dropout risk,
+   - produce interactive maps and static figures.
+
+No local install required when using Colab.
+
+---
+
+## What this project demonstrates
+
+- **Synthetic data generation** for longitudinal student trajectories.   
+- **Geospatial processing** (join synthetic outcomes to real neighborhood geometries).  
+- **Visualization** (maps, model diagnostics, top-risk identification).  
+- **Reproducible notebook workflow** suitable for sharing in Colab.
+
+**Assumptions & limitations**
+
+- Dropout probabilities are synthetic and illustrative
+- No causal interpretation is intended
+- Geographic weighting uses area as a proxy for population density
+
+## Core files & purpose
+
+- `src/generate_population.py` — create synthetic students and demographic attributes.  
+- `src/simulate_dropout.py` — simulate semester-level records and dropout events.  
+- `src/geospatial_processing.py` — load GeoJSON, normalize names, compute aggregated risk by neighborhood.  
+- `src/visualizations.py` — functions to render maps and plots (Plotly/Matplotlib).  
+- `CDMX synthetic dropout.ipynb` — one-click Colab notebook that ties everything together.  
+- `requirements.txt` — minimal dependencies to run the project.
+
+---
+
+## 📌 Minimal dependencies (also in `requirements.txt`)
+
+- numpy
+- pandas
+- plotly
+- geopandas
+- shapely
+- statsmodels
+- faker
+
+---
+
+## 🧾 Example outputs
+
+- Choropleth map showing average dropout probability per neighborhood.  
+- Plots: observed vs predicted dropout by semester, ROC curve, top-10 high-risk students CSV.  
+- A small SQLite database with `students_raw` and `inscripciones` tables.
+
+
+---
+
+## ⚙️ Security & ethics
+
+- Data is **synthetic** and generated within the project. No real student data is used or distributed.  
+- The pipeline is intended for learning, demonstration, and methodological prototyping only.
+
+---
+
+## 🧭 Possible extensions
+
+- Replace synthetic data with anonymized institutional data (if available) while maintaining privacy safeguards.  
+- Add clustering (KMeans) to identify high-risk neighborhoods by features.  
+- Build a simple dashboard (Plotly Dash or streamlit) to display risk maps and student lists.  
+- Export a CSV or API endpoint with per-student alerts for early intervention workflows.
+
+---
+
+## 📄 License
+
+MIT License — feel free to reuse or adapt the code.
+
+
+
+
+================================================
+FILE: requirements.txt
+================================================
+numpy
+pandas
+plotly
+geopandas
+shapely
+statsmodels
+faker
+
+
+
+================================================
+FILE: src/generate_population.py
+================================================
+"""
+generate_population.py
+----------------------
+
+Generates a synthetic student population with demographic, socioeconomic,
+and geographic attributes. Designed to be portable and reproducible.
+
+This module does NOT rely on real student data.
+"""
+
+import numpy as np
+import pandas as pd
+from faker import Faker
+
+fake = Faker('es_MX')
+
+
+def generate_students(colonias_df, n_students=100_000, n_semesters=8):
+    """Generate synthetic students with demographic and SES attributes."""
+
+    sexes = ['F', 'M']
+    modalities = ['Escolarizado', 'Semiescolarizado', 'En Línea']
+
+    data = {
+        "student_id": np.arange(1, n_students + 1),
+        "sex": np.random.choice(sexes, n_students),
+        "age": np.random.normal(19, 1.8, n_students).round().astype(int),
+        "ses_index": np.random.normal(0, 1, n_students),  # socioeconomic indicator
+        "internet_access": np.random.choice([0, 1], n_students, p=[0.25, 0.75]),
+        #"transport_time": np.abs(np.random.normal(40, 12, n_students)).round().astype(int),
+        "modality": np.random.choice(modalities, n_students, p=[0.7, 0.2, 0.1])
+    }
+
+    df = pd.DataFrame(data)
+    df["name"] = [fake.name() for _ in range(n_students)]
+    df = assign_colonias(df, colonias_df)
+    return df
+
+
+def assign_colonias(students_df, colonias_df):
+
+    students_df["colonia_id"] = np.random.choice(
+        colonias_df["colonia_id"],
+        size=len(students_df),
+        replace=True,
+        p=colonias_df["pop_weight"].values
+    )
+
+    # now just merge metadata
+    students_df = students_df.merge(
+        colonias_df,
+        on="colonia_id",
+        how="left"
+    )
+
+    return students_df
+
+
+if __name__ == "__main__":
+    print(generate_students(5))
+
+
+
+================================================
+FILE: src/geospatial_processing.py
+================================================
+"""
+geospatial_processing.py
+"""
+
+import geopandas as gpd
+import pandas as pd
+import unicodedata
+
+
+def normalize(text):
+    """Remove accents and uppercase for stable merges."""
+    if pd.isna(text):
+        return text
+    text = text.lower()
+    text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
+    return text.strip()
+
+
+def load_colonias(geojson_path):
+    gdf = gpd.read_file(geojson_path)
+    gdf = gdf[["ID", "NOMUT", "NOMDT", "geometry"]]
+    colnames = ["colonia_id", "colonia_name", "alcaldia_name", "geometry"]
+    gdf.columns = colnames
+    gdf = calculate_area_density(gdf)
+    return gdf
+
+def calculate_area_density(gdf):
+    gdf_proj = gdf.to_crs(epsg=32614)  # UTM zone for CDMX
+
+    # 🔹 area-based population proxy
+    gdf_proj["area_km2"] = gdf_proj.geometry.area / 1e6
+    gdf_proj["pop_weight"] = (1 / gdf_proj["area_km2"]) ** 0.5
+    gdf_proj["pop_weight"] /= gdf_proj["pop_weight"].sum()
+
+    #🔹 back to lat/lon for plotting
+    return gdf_proj.to_crs(epsg=4326)
+
+
+def aggregate_risk(panel_df, students_df, colonias_df):
+    """Aggregation of dropout risk by colonia."""
+
+    # 1) Compute per-student dropout (0 or 1)
+    student_dropout = panel_df.groupby("student_id")["dropped"].max().reset_index()
+    student_dropout.columns = ["student_id", "ever_dropped"]
+
+    # 2) Attach dropout to students
+    merged = students_df.merge(student_dropout, on="student_id", how="left")
+
+    # 3) Compute average risk per colonia
+    risk_df = merged.groupby("colonia_id")["ever_dropped"].mean().reset_index()
+    risk_map_df = colonias_df.merge(risk_df, left_on="ID", right_on="colonia_id")
+
+
+    return risk_map_df
+
+
+
+
+================================================
+FILE: src/simulate_dropout.py
+================================================
+import numpy as np
+import pandas as pd
+
+def simulate_semesters(df_students, n_semesters=8, seed=42):
+    rng = np.random.default_rng(seed)
+
+    n = len(df_students)
+    
+    # base dropout probability per student (vectorized)
+    p_base = (
+        0.05
+        + 0.04 * (df_students["ses_index"] < -1)
+        + 0.03 * (df_students["internet_access"] == 0)
+        + 0.03 * (df_students["modality"] == "En Línea")
+    ).to_numpy()
+
+    alive = np.ones(n, dtype=bool)
+    records = []
+    baseline = np.array([0.18, 0.10, 0.06, 0.04, 0.03, 0.025, 0.02, 0.02])
+    for sem in range(1, n_semesters + 1):
+        # only sample for students still enrolled
+        u = rng.random(n)
+        p = p_base * baseline[sem - 1]
+        dropped = (u < p) & alive
+
+        records.append(pd.DataFrame({
+            "student_id": df_students["student_id"],
+            "semester": sem,
+            "dropped": dropped,
+            "p_dropout": p_base,
+            "colonia_id": df_students["colonia_id"]
+        }))
+
+        # update survival
+        alive &= ~dropped
+
+    panel = pd.concat(records, ignore_index=True)
+
+    # remove semesters after dropout
+    panel = panel[panel.groupby("student_id")["dropped"].cumsum() <= 1]
+
+    return panel
+
+
+
+================================================
+FILE: src/sql_analytics.py
+================================================
+import sqlite3
+import pandas as pd
+
+def run_sql_analytics(students_df, panel_df, db_path="analytics.db"):
+    conn = sqlite3.connect(db_path)
+    students_sql = students_df.drop(columns=["geometry"], errors="ignore")
+    panel_sql = panel_df.drop(columns=["geometry"], errors="ignore")
+
+    # Write tables
+    students_sql.to_sql("students", conn, if_exists="replace", index=False)
+    panel_sql.to_sql("enrollments", conn, if_exists="replace", index=False)
+
+    # 1) Dropout rate by modality
+    q1 = """
+    SELECT
+        s.modality,
+        AVG(e.dropped) AS dropout_rate
+    FROM enrollments e
+    JOIN students s USING(student_id)
+    GROUP BY s.modality
+    """
+    dropout_by_modality = pd.read_sql(q1, conn)
+
+    # 2) Dropout rate by semester
+    q2 = """
+    SELECT
+        semester,
+        AVG(dropped) AS dropout_rate
+    FROM enrollments
+    GROUP BY semester
+    ORDER BY semester
+    """
+    dropout_by_semester = pd.read_sql(q2, conn)
+
+    # 3) Top 10 colonias by dropout rate
+    q3 = """
+    SELECT
+        colonia_id,
+        AVG(dropped) AS dropout_rate
+    FROM enrollments
+    GROUP BY colonia_id
+    ORDER BY dropout_rate DESC
+    LIMIT 10
+    """
+    high_risk_colonias = pd.read_sql(q3, conn)
+
+    conn.close()
+
+    return {
+        "dropout_by_modality": dropout_by_modality,
+        "dropout_by_semester": dropout_by_semester,
+        "high_risk_colonias": high_risk_colonias
+    }
+
+
+
+================================================
+FILE: src/visualizations.py
+================================================
+"""
+visualizations.py
+"""
+
+import plotly.express as px
+import plotly.graph_objects as go
+
+
+def plot_dropout_by_semester(panel_df):
+    """Simple bar chart of dropout counts by semester."""
+    df = panel_df.groupby("semester")["dropped"].sum().reset_index()
+    fig = px.bar(df, x="semester", y="dropped", title="Dropouts by Semester")
+    return fig
+
+
+
+
+
+def plot_risk_map(risk_full, city_name="Mexico City"):
+    """Map with OpenStreetMap background showing roads and streets"""
+    
+    # Convert to lat/lon
+    risk_plot = risk_full.to_crs(epsg=4326)
+    
+    # Get center coordinates
+    bounds = risk_plot.total_bounds
+    center_lon = (bounds[0] + bounds[2]) / 2
+    center_lat = (bounds[1] + bounds[3]) / 2
+    
+    fig = px.choropleth_mapbox(
+        risk_plot,
+        geojson=risk_plot.geometry,
+        locations=risk_plot.index,
+        color="ever_dropped",
+        color_continuous_scale="YlOrRd", 
+        mapbox_style="carto-positron",  # ← THIS SHOWS ROADS!
+        zoom=11,  # Adjust zoom level (higher = more detailed)
+        center={"lat": center_lat, "lon": center_lon},
+        opacity=0.8,  # Make polygons slightly transparent to see roads
+        labels={"ever_dropped": "Dropout Rate", "NOMDT": "Alcaldia"},
+        title=f"<b>Dropout Risk Map - {city_name}</b>",
+        hover_name=risk_plot.NOMUT,  # Show neighborhood names
+        hover_data={"ever_dropped": ":.1%", "NOMDT": True}
+    )
+    
+    # Professional styling
+    fig.update_layout(
+        margin=dict(l=20, r=20, t=80, b=20),
+        title_font=dict(size=20, family="Arial, sans-serif"),
+        title_x=0.5,
+        coloraxis_colorbar=dict(
+            title="Risk Level",
+            title_font=dict(size=12),
+            tickfont=dict(size=10),
+            thickness=20,
+            len=0.8
+        ),
+        paper_bgcolor="white",
+        hoverlabel=dict(
+            bgcolor="white",
+            font_size=12,
+            font_family="Arial"
+        )
+    )
+    
+    return fig
+
+

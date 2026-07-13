@@ -1,0 +1,999 @@
+Directory structure:
+└── ehperminute-commerce-pipeline/
+    ├── README.MD
+    ├── analytics.py
+    ├── analytics_queries.py
+    ├── catalog.py
+    ├── check_db.py
+    ├── create_charts.py
+    ├── database.py
+    ├── docker-compose.yml
+    ├── export_csv(obsolete).py
+    ├── export_reports.py
+    ├── generate_customers.py
+    ├── generate_sales.py
+    ├── init_db.py
+    ├── load_data.py
+    ├── mini_psql.py
+    ├── quality_checks.py
+    ├── requirements.txt
+    ├── table_config.py
+    ├── test_connection.py
+    └── reports/
+        ├── monthly_revenue.csv
+        ├── revenue_by_category.csv
+        ├── revenue_by_country.csv
+        ├── revenue_by_product.csv
+        └── top_customers.csv
+
+================================================
+FILE: README.MD
+================================================
+## Project Overview
+
+This project simulates a small e-commerce dataset using Python, loads the generated data into PostgreSQL, and runs SQL-based analytics and data quality checks. The goal is to practice core data engineering skills such as data generation, relational modeling, database loading, validation, and documentation.
+
+Includes a minimal PostgreSQL command-line helper supporting SQL execution, table listing, and table description commands.
+
+## Data Quality Checks
+
+This project includes SQL-based data quality checks using Python and PostgreSQL.
+
+Current checks:
+
+* Sales quantity must be greater than 0.
+* Product price must be greater than 0.
+* Every sale must reference an existing customer.
+* Every sale must reference an existing product.
+* Sale date cannot be earlier than customer registration date.
+* Customer segment must belong to the allowed segment list.
+
+The checks are executed with:
+
+```bash
+python quality_checks.py
+```
+
+## Dashboard Preview
+
+The project includes simple chart outputs generated from the exported PostgreSQL analytics reports.
+
+### Revenue by Category
+
+![Revenue by category](dashboard/screenshots/revenue_by_category.png)
+
+### Top Products by Revenue
+
+![Top products by revenue](dashboard/screenshots/top_products_by_revenue.png)
+
+### Revenue by Country
+
+![Revenue by country](dashboard/screenshots/revenue_by_country.png)
+
+### Monthly Revenue
+
+![Monthly revenue](dashboard/screenshots/monthly_revenue.png)
+
+
+## How to Run
+
+```bash
+docker compose up -d
+python init_db.py
+python load_data.py
+python quality_checks.py
+python export_reports.py
+python create_charts.py
+
+
+
+================================================
+FILE: analytics.py
+================================================
+from database import fetch_all
+from analytics_queries import QUERIES
+
+
+rows = fetch_all(QUERIES["revenue_by_product"])
+
+for name, category, revenue in rows:
+    print(f"{name} ({category}): ${revenue:,.2f}")
+
+
+
+================================================
+FILE: analytics_queries.py
+================================================
+QUERIES = {
+    "revenue_by_product": """
+        SELECT 
+            p.name,
+            p.category,
+            SUM(s.quantity * p.price) AS revenue
+        FROM sales s
+        JOIN products p ON s.product_id = p.id
+        GROUP BY p.name, p.category
+        ORDER BY revenue DESC;
+    """,
+
+    "revenue_by_category": """
+        SELECT 
+            p.category,
+            SUM(s.quantity * p.price) AS revenue
+        FROM sales s
+        JOIN products p ON s.product_id = p.id
+        GROUP BY p.category
+        ORDER BY revenue DESC;
+    """,
+
+    "revenue_by_country": """
+        SELECT
+            c.country,
+            SUM(s.quantity * p.price) AS revenue
+        FROM sales s
+        JOIN customers c ON s.customer_id = c.id
+        JOIN products p ON s.product_id = p.id
+        GROUP BY c.country
+        ORDER BY revenue DESC;
+    """,
+
+    "monthly_revenue": """
+        SELECT
+            DATE_TRUNC('month', s.sale_date)::date AS month,
+            SUM(s.quantity * p.price) AS revenue
+        FROM sales s
+        JOIN products p ON s.product_id = p.id
+        GROUP BY month
+        ORDER BY month;
+    """,
+
+    "top_customers": """
+        SELECT
+            c.id AS customer_id,
+            c.country,
+            c.segment,
+            SUM(s.quantity * p.price) AS revenue
+        FROM sales s
+        JOIN customers c ON s.customer_id = c.id
+        JOIN products p ON s.product_id = p.id
+        GROUP BY c.id, c.country, c.segment
+        ORDER BY revenue DESC
+        LIMIT 20;
+    """
+}
+
+
+
+================================================
+FILE: catalog.py
+================================================
+products = [
+    ("Monitor AOC 27\" QHD", "Displays", 250),
+    ("Ryzen 5 7500F", "CPUs", 280),
+    ("Core Ultra 5 250K", "CPUs", 350),
+    ("RTX 5070 Ti", "GPUs", 750),
+    ("32GB DDR5 Kit", "RAM", 600),
+    ("USB-C Cable 1m", "Accessories", 10),
+    ("Mouse Pad XL", "Accessories", 18),
+    ("Wireless Mouse", "Peripherals", 35),
+    ("Controller GameSir G7 pro", "Peripherals", 80),
+    ("Mac Mini m4 256gb 16gb RAM", "Mini PCs", 800),
+    ("USB-C USB-A Cable 1m", "Accessories", 10),
+    ("Charger Ugreen 30Watt", "Accessories", 30),
+    ("Radeon RX 9060 XT Gigabyte 16gb", "GPUs", 600),
+
+    ("SSD ADATA 500gb SATA3", "Storage", 80),
+    ("SSD Fikwot 1tb m2 PCIe4x4", "Storage", 150),
+    ("SSD Somnambulist 512gb SATA3", "Storage", 90),
+    ("SSD KingDian 480gb SATA3", "Storage", 80),
+    ("Charger Tockii 60Watt", "Accessories", 50),
+    ("Ryzen 7 7800X3D", "CPUs", 340)
+ ]
+
+category_weights = {
+    "Accessories": 30,
+    "Peripherals": 18,
+    "Storage": 15,
+    "Displays": 10,
+    "RAM": 8,
+    "CPUs": 7,
+    "GPUs": 5,
+    "Mini PCs": 2,
+}
+
+
+
+================================================
+FILE: check_db.py
+================================================
+from database import get_connection
+
+conn = get_connection()
+cursor = conn.cursor()
+
+for table in ["products", "customers", "sales"]:
+    cursor.execute(f"SELECT COUNT(*) FROM {table};")
+    count = cursor.fetchone()[0]
+    print(table, count)
+
+cursor.close()
+conn.close()
+
+
+================================================
+FILE: create_charts.py
+================================================
+from pathlib import Path
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+REPORTS_DIR = Path("reports")
+CHARTS_DIR = Path("dashboard/screenshots")
+CHARTS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def save_revenue_by_category():
+    df = pd.read_csv(REPORTS_DIR / "revenue_by_category.csv")
+    df["revenue"] = pd.to_numeric(df["revenue"])
+
+    df = df.sort_values("revenue", ascending=True)
+
+    plt.figure(figsize=(10, 6))
+    plt.barh(df["category"], df["revenue"])
+    plt.title("Revenue by Category")
+    plt.xlabel("Revenue")
+    plt.ylabel("Category")
+    plt.tight_layout()
+    plt.savefig(CHARTS_DIR / "revenue_by_category.png")
+    plt.close()
+
+
+def save_top_products():
+    df = pd.read_csv(REPORTS_DIR / "revenue_by_product.csv")
+    df["revenue"] = pd.to_numeric(df["revenue"])
+
+    df = df.sort_values("revenue", ascending=False).head(10)
+    df = df.sort_values("revenue", ascending=True)
+
+    plt.figure(figsize=(10, 6))
+    plt.barh(df["name"], df["revenue"])
+    plt.title("Top 10 Products by Revenue")
+    plt.xlabel("Revenue")
+    plt.ylabel("Product")
+    plt.tight_layout()
+    plt.savefig(CHARTS_DIR / "top_products_by_revenue.png")
+    plt.close()
+
+
+def save_revenue_by_country():
+    df = pd.read_csv(REPORTS_DIR / "revenue_by_country.csv")
+    df["revenue"] = pd.to_numeric(df["revenue"])
+
+    df["revenue_millions"] = df["revenue"] / 1_000_000
+
+    df = df.sort_values("revenue_millions", ascending=True)
+
+    plt.figure(figsize=(10, 6))
+    plt.barh(df["country"], df["revenue_millions"])
+    plt.title("Revenue by Country")
+    plt.xlabel("Revenue (millions MXN)")
+    plt.ylabel("Country")
+    plt.tight_layout()
+    plt.savefig(CHARTS_DIR / "revenue_by_country.png")
+    plt.close()
+
+
+def save_monthly_revenue():
+    df = pd.read_csv(REPORTS_DIR / "monthly_revenue.csv")
+    df["month"] = pd.to_datetime(df["month"])
+    df["revenue"] = pd.to_numeric(df["revenue"])
+
+    df = df.sort_values("month")
+
+    plt.figure(figsize=(12, 6))
+    plt.plot(df["month"], df["revenue"], marker="o")
+    plt.title("Monthly Revenue")
+    plt.xlabel("Month")
+    plt.ylabel("Revenue")
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig(CHARTS_DIR / "monthly_revenue.png")
+    plt.close()
+
+
+def main():
+    save_revenue_by_category()
+    save_top_products()
+    save_revenue_by_country()
+    save_monthly_revenue()
+
+    print(f"Charts saved to {CHARTS_DIR}")
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+================================================
+FILE: database.py
+================================================
+from contextlib import closing
+import psycopg2
+
+
+def get_connection():
+    return psycopg2.connect(
+        dbname="sales_db",
+        user="user",
+        password="password",
+        host="127.0.0.1",
+        port="5432",
+        )
+
+
+def fetch_all(query, params=None):
+    with closing(get_connection()) as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(query, params)
+            return cursor.fetchall()
+
+
+================================================
+FILE: docker-compose.yml
+================================================
+services:
+  postgres:
+    image: postgres:16
+    container_name: sales_postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: sales_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+
+
+
+================================================
+FILE: export_csv(obsolete).py
+================================================
+import csv
+from generate_customers import gen_customers
+from generate_sales import gen_sales
+from catalog import products
+
+
+def export(filename, data):
+    with open(filename, "w", encoding="utf8") as out_f:
+        writer = csv.writer(out_f)
+        writer.writerows(data)
+
+
+for data, filename in (products, "products.csv"), (gen_sales(), "sales.csv"), (gen_customers(), "customers.csv"):
+    export(filename, data)
+
+
+
+================================================
+FILE: export_reports.py
+================================================
+import csv
+from pathlib import Path
+
+from database import get_connection
+from analytics_queries import QUERIES
+
+
+REPORTS_DIR = Path("reports")
+REPORTS_DIR.mkdir(exist_ok=True)
+
+
+def export_report(cursor, report_name, query):
+    cursor.execute(query)
+
+    columns = [col[0] for col in cursor.description]
+    rows = cursor.fetchall()
+
+    filepath = REPORTS_DIR / f"{report_name}.csv"
+
+    with open(filepath, "w", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+        writer.writerow(columns)
+        writer.writerows(rows)
+
+    print(f"Exported {filepath}")
+
+
+def main():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    for report_name, query in QUERIES.items():
+        export_report(cursor, report_name, query)
+
+    cursor.close()
+    conn.close()
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+================================================
+FILE: generate_customers.py
+================================================
+import random
+import datetime
+
+N_CUSTOMERS = 1000
+
+countries = [
+    "Mexico", "Brazil", "USA", "Colombia", "Chile",
+    "Argentina", "Peru", "Canada", "Dominican Republic",
+    "Costa Rica", "Guatemala"
+]
+
+country_weights = [35, 20, 15, 8, 5, 5, 4, 4, 2, 1, 1]
+
+segments = ["Consumer", "Small Business", "Enterprise"]
+segment_weights = [78, 18, 4]
+
+start = datetime.date(2023, 1, 1)
+end = datetime.date(2025, 12, 31)
+delta = end - start
+
+
+def gen_customers():
+    customers = []
+    for customer_id in range(1, N_CUSTOMERS + 1):
+        country = random.choices(countries, weights=country_weights, k=1)[0]
+        segment = random.choices(segments, weights=segment_weights, k=1)[0]
+
+        random_days = random.randrange(delta.days + 1)
+        registration_date = start + datetime.timedelta(days=random_days)
+
+        customers.append((customer_id, country, segment, registration_date))
+
+    return customers
+
+
+
+================================================
+FILE: generate_sales.py
+================================================
+import random
+import datetime
+from generate_customers import N_CUSTOMERS, gen_customers
+from catalog import products, category_weights
+
+N_SALES = 10000
+END_DATE = datetime.date(2025, 12, 31)
+
+product_weights = [
+    category_weights[category]
+    for name, category, price in products
+]
+
+def gen_sales(customers=None):
+    sales = []
+    if customers is None:
+        customers = gen_customers()
+    chosen_products = random.choices(
+    range(1, len(products)+1),
+    weights=product_weights,
+    k=N_SALES
+)
+
+    for sale_id, product_id in enumerate(chosen_products, start=1):
+        customer_id = random.randint(1, len(customers))
+        customer = customers[customer_id - 1]
+        registration_date = customer[3]
+
+        delta = END_DATE - registration_date
+        random_days = random.randrange(delta.days + 1)
+        sale_date = registration_date + datetime.timedelta(days=random_days)
+
+        quantity = random.randint(1, 5)
+
+        sales.append((sale_id, customer_id, product_id, quantity, sale_date))
+
+    return sales
+
+
+
+================================================
+FILE: init_db.py
+================================================
+from database import get_connection
+
+conn = get_connection()
+cursor = conn.cursor()
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS products (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    price NUMERIC NOT NULL CHECK (price > 0)
+);
+""")
+               
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS customers (
+    id INTEGER PRIMARY KEY,
+    country TEXT NOT NULL,
+    segment TEXT NOT NULL CHECK (segment IN ('Consumer', 'Small Business', 'Enterprise')),
+    registration_date DATE NOT NULL
+);
+""")
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS sales (
+    id INTEGER PRIMARY KEY,
+    customer_id INTEGER NOT NULL REFERENCES customers(id),
+    product_id INTEGER NOT NULL REFERENCES products(id),
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    sale_date DATE NOT NULL
+);
+""")
+
+
+
+
+
+conn.commit()
+conn.close()
+
+
+
+================================================
+FILE: load_data.py
+================================================
+from database import get_connection
+from psycopg2 import sql
+from table_config import TABLES, generate_all_data
+
+
+def reset_tables():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        TRUNCATE sales, customers, products
+        RESTART IDENTITY CASCADE;
+    """)
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def insert_db(table, columns, data):
+    if not data:
+        return
+
+    placeholders = sql.SQL(", ").join(sql.Placeholder() * len(columns))
+
+    query = sql.SQL("""
+        INSERT INTO {table} ({columns})
+        VALUES ({placeholders})
+    """).format(
+        table=sql.Identifier(table),
+        columns=sql.SQL(", ").join(map(sql.Identifier, columns)),
+        placeholders=placeholders,
+    )
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.executemany(query, data)
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def load_all():
+    reset_tables()
+    all_data = generate_all_data()
+
+    for table_config in TABLES:
+        table_name = table_config["name"]
+        columns = table_config["columns"]
+        data = all_data[table_name]
+
+        insert_db(table_name, columns, data)
+
+
+if __name__ == "__main__":
+    load_all()
+
+
+================================================
+FILE: mini_psql.py
+================================================
+from database import get_connection
+
+
+PROMPT = "mini_psql> "
+
+
+def list_tables(cursor):
+    cursor.execute("""
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+        ORDER BY table_name;
+    """)
+
+    rows = cursor.fetchall()
+
+    for row in rows:
+        print(row[0])
+
+
+def describe_table(cursor, table_name):
+    cursor.execute("""
+        SELECT
+            column_name,
+            data_type,
+            is_nullable
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = %s
+        ORDER BY ordinal_position;
+    """, (table_name,))
+
+    rows = cursor.fetchall()
+
+    if not rows:
+        print(f"Table not found: {table_name}")
+        return
+
+    print(f"Table: {table_name}")
+    for column_name, data_type, is_nullable in rows:
+        print(f"{column_name:25} {data_type:20} nullable: {is_nullable}")
+
+
+def execute_sql(cursor, conn, query):
+    try:
+        cursor.execute(query)
+
+        if cursor.description:
+            columns = [col[0] for col in cursor.description]
+            rows = cursor.fetchall()
+
+            print(columns)
+            for row in rows:
+                print(row)
+        else:
+            conn.commit()
+            print(f"Query executed. Rows affected: {cursor.rowcount}")
+
+    except Exception as e:
+        conn.rollback()
+        print("ERROR:")
+        print(e)
+
+
+def main():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    sql_buffer = ""
+
+    print("Tiny PostgreSQL shell")
+    print("Commands: \\dt, \\d table_name, \\q")
+
+    while True:
+        line = input(PROMPT)
+
+        stripped = line.strip()
+
+        if stripped == "\\q":
+            break
+
+        if stripped == "\\dt":
+            list_tables(cursor)
+            continue
+
+        if stripped.startswith("\\d "):
+            table_name = stripped.split(maxsplit=1)[1]
+            describe_table(cursor, table_name)
+            continue
+
+        sql_buffer += line + "\n"
+
+        if not stripped.endswith(";"):
+            continue
+
+        query = sql_buffer.strip()
+        execute_sql(cursor, conn, query)
+        sql_buffer = ""
+
+    cursor.close()
+    conn.close()
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+================================================
+FILE: quality_checks.py
+================================================
+from database import get_connection
+
+conn = get_connection()
+cursor = conn.cursor()
+
+checks = [
+    (
+        "No sales with quantity <= 0",
+        """
+        SELECT COUNT(*)
+        FROM sales
+        WHERE quantity <= 0;
+        """
+    ),
+    (
+        "No products with price <= 0",
+        """
+        SELECT COUNT(*)
+        FROM products
+        WHERE price <= 0;
+        """
+    ),
+    (
+        "No sales with missing customers",
+        """
+        SELECT COUNT(*)
+        FROM sales s
+        LEFT JOIN customers c ON s.customer_id = c.id
+        WHERE c.id IS NULL;
+        """
+    ),
+    (
+        "No sales with missing products",
+        """
+        SELECT COUNT(*)
+        FROM sales s
+        LEFT JOIN products p ON s.product_id = p.id
+        WHERE p.id IS NULL;
+        """
+    ),
+    (
+        "No sale before customer registration date",
+        """
+        SELECT COUNT(*)
+        FROM sales s
+        JOIN customers c ON s.customer_id = c.id
+        WHERE s.sale_date < c.registration_date;
+        """
+    ),
+    (
+        "No invalid customer segments",
+        """
+        SELECT COUNT(*)
+        FROM customers
+        WHERE segment NOT IN ('Consumer', 'Small Business', 'Enterprise');
+        """
+    ),
+]
+
+for name, query in checks:
+    cursor.execute(query)
+    problems = cursor.fetchone()[0]
+
+    if problems == 0:
+        print(f"PASS - {name}")
+    else:
+        print(f"FAIL - {name}: {problems} problems found")
+
+cursor.close()
+conn.close()            
+
+
+
+
+
+================================================
+FILE: requirements.txt
+================================================
+psycopg2-binary
+pandas
+matplotlib
+
+
+================================================
+FILE: table_config.py
+================================================
+from catalog import products
+from generate_customers import gen_customers
+from generate_sales import gen_sales
+
+
+def get_products_with_ids():
+    return [
+        (id, *product)
+        for id, product in enumerate(products, start=1)
+    ]
+
+
+def generate_all_data():
+    customers = gen_customers()
+    sales = gen_sales(customers)
+
+    return {
+        "products": get_products_with_ids(),
+        "customers": customers,
+        "sales": sales,
+    }
+
+
+TABLES = [
+    {
+        "name": "products",
+        "columns": ["id", "name", "category", "price"],
+    },
+    {
+        "name": "customers",
+        "columns": ["id", "country", "segment", "registration_date"],
+    },
+    {
+        "name": "sales",
+        "columns": ["id", "customer_id", "product_id", "quantity", "sale_date"],
+    },
+]
+
+
+================================================
+FILE: test_connection.py
+================================================
+from database import get_connection
+
+try:
+    conn = get_connection()
+    print("Connected")
+    conn.close()
+except Exception as e:
+    print(type(e))
+    print(e)
+
+
+================================================
+FILE: reports/monthly_revenue.csv
+================================================
+month,revenue
+2023-01-01,3260
+2023-02-01,1975
+2023-03-01,12896
+2023-04-01,5018
+2023-05-01,9238
+2023-06-01,19358
+2023-07-01,23738
+2023-08-01,24995
+2023-09-01,39003
+2023-10-01,27609
+2023-11-01,41421
+2023-12-01,29549
+2024-01-01,34233
+2024-02-01,38170
+2024-03-01,37776
+2024-04-01,43623
+2024-05-01,65645
+2024-06-01,55615
+2024-07-01,59943
+2024-08-01,70583
+2024-09-01,75110
+2024-10-01,87157
+2024-11-01,117334
+2024-12-01,94185
+2025-01-01,95034
+2025-02-01,94271
+2025-03-01,133413
+2025-04-01,125301
+2025-05-01,137856
+2025-06-01,146239
+2025-07-01,191175
+2025-08-01,193424
+2025-09-01,213824
+2025-10-01,251641
+2025-11-01,291656
+2025-12-01,429602
+
+
+
+================================================
+FILE: reports/revenue_by_category.csv
+================================================
+category,revenue
+CPUs,713160
+GPUs,622950
+Storage,612780
+RAM,429000
+Accessories,362910
+Displays,230250
+Peripherals,200220
+Mini PCs,149600
+
+
+
+================================================
+FILE: reports/revenue_by_country.csv
+================================================
+country,revenue
+Mexico,1233139
+Brazil,659395
+USA,483943
+Colombia,258431
+Chile,155323
+Canada,144353
+Peru,138363
+Argentina,126148
+Costa Rica,62898
+Dominican Republic,37982
+Guatemala,20895
+
+
+
+================================================
+FILE: reports/revenue_by_product.csv
+================================================
+name,category,revenue
+32GB DDR5 Kit,RAM,429000
+Radeon RX 9060 XT Gigabyte 16gb,GPUs,313200
+RTX 5070 Ti,GPUs,309750
+Ryzen 7 7800X3D,CPUs,271320
+Core Ultra 5 250K,CPUs,247800
+"Monitor AOC 27"" QHD",Displays,230250
+SSD Fikwot 1tb m2 PCIe4x4,Storage,226500
+Ryzen 5 7500F,CPUs,194040
+Charger Tockii 60Watt,Accessories,154450
+Mac Mini m4 256gb 16gb RAM,Mini PCs,149600
+Controller GameSir G7 pro,Peripherals,140720
+SSD Somnambulist 512gb SATA3,Storage,138600
+SSD KingDian 480gb SATA3,Storage,124480
+SSD ADATA 500gb SATA3,Storage,123200
+Charger Ugreen 30Watt,Accessories,88830
+Wireless Mouse,Peripherals,59500
+Mouse Pad XL,Accessories,57150
+USB-C USB-A Cable 1m,Accessories,31590
+USB-C Cable 1m,Accessories,30890
+
+
+
+================================================
+FILE: reports/top_customers.csv
+================================================
+customer_id,country,segment,revenue
+62,Mexico,Consumer,14710
+933,Brazil,Consumer,11904
+267,Costa Rica,Consumer,11230
+449,Mexico,Consumer,11115
+323,Mexico,Consumer,10312
+283,Peru,Consumer,10173
+18,Brazil,Consumer,10114
+909,Mexico,Consumer,9929
+420,Mexico,Consumer,9855
+620,Canada,Small Business,9698
+467,Mexico,Consumer,9590
+230,Chile,Consumer,9510
+314,Argentina,Consumer,9322
+128,Colombia,Small Business,9285
+836,Brazil,Consumer,9256
+42,Mexico,Consumer,9029
+905,Chile,Consumer,8978
+273,Mexico,Small Business,8930
+145,Mexico,Consumer,8902
+10,Brazil,Consumer,8880
+
+
