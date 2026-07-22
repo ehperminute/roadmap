@@ -261,6 +261,9 @@ CREATE TABLE IF NOT EXISTS diagnostics (
     FOREIGN KEY (target_id) REFERENCES targets(id)
 );
 
+
+
+
 CREATE TABLE IF NOT EXISTS diagnostic_skill_clusters (
     diagnostic_id TEXT NOT NULL,
     skill_cluster_id TEXT NOT NULL,
@@ -271,17 +274,41 @@ CREATE TABLE IF NOT EXISTS diagnostic_skill_clusters (
     FOREIGN KEY (skill_cluster_id) REFERENCES skill_clusters(id)
 );
 
+
+
+
+
+
 CREATE TABLE IF NOT EXISTS diagnostic_attempts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+
     diagnostic_id TEXT NOT NULL,
+    attempt_key TEXT,
+
     attempt_summary TEXT,
     submission_text TEXT,
+
     result TEXT CHECK (result IN ('passed', 'failed', 'partial', 'not_scored')),
     score REAL CHECK (score BETWEEN 0 AND 10),
+
+    assistance_level TEXT NOT NULL DEFAULT 'not_recorded'
+        CHECK (
+            assistance_level IN (
+                'independent',
+                'assisted_acknowledged',
+                'minor_hint',
+                'guided',
+                'solution_reviewed',
+                'not_recorded'
+            )
+        ),
+
     evaluator_notes TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (diagnostic_id) REFERENCES diagnostics(id)
+    FOREIGN KEY (diagnostic_id) REFERENCES diagnostics(id),
+
+    UNIQUE (diagnostic_id, attempt_key)
 );
 
 CREATE TABLE IF NOT EXISTS diagnostic_skill_results (
