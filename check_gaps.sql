@@ -17,4 +17,4 @@ ORDER BY
         WHEN 'later' THEN 3
         ELSE 4
     END,
-    reliability_gap DE
+    reliability_gap DESC;
