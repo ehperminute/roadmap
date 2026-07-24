@@ -5,9 +5,9 @@ ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = ROOT / "roadmap.db"
 
 SQL_FILES = [
-    ROOT / "schema.sql",
-    ROOT / "insert_targets.sql",
-    ROOT / "current_profile.sql",
+    ROOT / "sql" / "schema.sql",
+    ROOT / "sql" / "insert_targets.sql",
+    ROOT / "sql" / "current_profile.sql",
 ]
 
 def run_sql_file(conn: sqlite3.Connection, path: Path) -> None:
