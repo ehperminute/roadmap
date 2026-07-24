@@ -1,0 +1,259 @@
+# ROADMAP_CURRENT_DIGEST
+
+## Current Context
+
+| id | active_target_id | active_module_id | active_task_id | active_diagnostic_id | current_focus | next_action | blocker | updated_at |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 |  |  |  |  | Bootstrap roadmap database. | Create target profiles and current profile state. |  | 2026-07-22 18:53:20 |
+
+## Current Profile Ratings
+
+| skill_cluster_id | skill_cluster_name | artifact_rating | reliability_rating | confidence_level | rating_status | evidence_summary | current_limitations | next_diagnostic_id | last_event_id | updated_at |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| AGENTIC_WORKFLOWS | Agentic Workflows | 0.0 | 0.0 | low | not_started | No accepted current evidence yet. | Needs multi-step AI workflow proof. |  |  | 2026-07-24 19:38:01 |
+| AI_ASSISTED_DEVELOPMENT | AI-Assisted Development | 0.0 | 0.0 | low | not_started | No accepted current evidence yet. | Needs evaluated AI-assisted development workflow proof. |  |  | 2026-07-24 19:38:01 |
+| APIS_WEB_APPS | APIs & Web Apps | 2.5 | 1.5 | low | diagnostic_pending | Evidence from FastAPI endpoints, JSON responses, Flask dashboard routes, and simple templates. | Needs endpoint explanation, debugging, and small modification diagnostic. |  | 6 | 2026-07-22 18:53:20 |
+| BIG_DATA_DATA_LAKE | Big Data & Data Lake | 0.0 | 0.0 | low | not_started | No accepted evidence yet. | Needs PySpark, Parquet, partitioning, and data lake layer evidence if this branch becomes active. |  | 15 | 2026-07-22 18:53:20 |
+| BUSINESS_ANALYSIS | Business Analysis | 2.0 | 1.5 | low | diagnostic_pending | Evidence from basic report interpretation and metric summaries. | Needs stronger KPI interpretation, stakeholder-style questions, and business-rule translation. |  | 18 | 2026-07-22 18:53:20 |
+| CLOUD_DATA_PLATFORMS | Cloud Data Platforms | 0.0 | 0.0 | low | not_started | No accepted evidence yet. | Needs cloud storage/database/warehouse basics if this branch becomes active. |  | 16 | 2026-07-22 18:53:20 |
+| CONTAINERS_CI_CD | Containers & CI/CD | 2.0 | 1.0 | low | diagnostic_pending | Evidence from Dockerfile, Docker Compose, and project containerization exposure. | Needs container build/run/debug and simple CI validation evidence. | workflow_tools_001 | 23 | 2026-07-22 18:53:20 |
+| DATA_MODELING | Data Modeling | 2.5 | 2.0 | medium | updated_by_evaluation | Evaluation 001 repair gate: improved table relationship logic. | Needs stronger independent schema, grain, and relationship checks. |  | 26 | 2026-07-22 21:32:21 |
+| DATA_QUALITY | Data Quality | 3.0 | 2.5 | medium | updated_by_evaluation | Evaluation 001 repair gate: corrected JOIN, LEFT JOIN, missing-reference, and filtering patterns after acknowledged assistance. | Full independent SQL/data-quality diagnostic still pending. | sql_independence_001 | 25 | 2026-07-22 21:32:21 |
+| DOCUMENTATION | Documentation | 3.0 | 2.5 | medium | diagnostic_pending | Evidence from README files, run instructions, project summaries, assumptions, limitations, and generated profile documents. | Needs concise project documentation rewrite and runbook diagnostic. | project_explanation_001 | 11 | 2026-07-22 18:53:20 |
+| ETL_PIPELINES | ETL & Data Pipelines | 3.0 | 2.0 | low | diagnostic_pending | Evidence from raw-to-table loading, CSV exports, generated data, report creation, and script-based project workflows. | Needs stronger ETL evidence: raw to bronze/silver/gold or raw to clean to report pipeline with validation and logging. |  | 13 | 2026-07-22 18:53:20 |
+| EVENT_DRIVEN_SYSTEMS | Event-Driven Systems | 0.0 | 0.0 | low | not_started | No accepted current evidence yet. | Needs event-driven or async integration proof. |  |  | 2026-07-24 19:38:01 |
+| FRONTEND_APPS | Frontend Applications | 0.0 | 0.0 | low | not_started | No accepted current evidence yet. | Needs frontend interface proof. |  |  | 2026-07-24 19:38:01 |
+| GEOSPATIAL | Geospatial Analytics | 2.0 | 1.0 | low | diagnostic_pending | Evidence from GeoPandas loading, CRS handling, geographic merging, and Plotly choropleth mapping. | Needs independent geospatial cleanup and map explanation diagnostic. |  | 9 | 2026-07-22 18:53:20 |
+| JAVA_BACKEND | Java Backend | 0.0 | 0.0 | low | not_started | No accepted current evidence yet. | Needs Java/backend diagnostic or project proof. |  |  | 2026-07-24 19:38:01 |
+| LINUX_SYSTEMS | Linux & Systems | 2.0 | 1.5 | low | diagnostic_pending | Evidence from Linux terminal use, project execution, shell scripts, and environment handling. | Needs practical file/process/permissions/command diagnostic. | workflow_tools_001 | 21 | 2026-07-22 18:53:20 |
+| LLM_APP_ENGINEERING | LLM Application Engineering | 0.0 | 0.0 | low | not_started | No accepted current evidence yet. | Needs LLM API/workflow project proof. |  |  | 2026-07-24 19:38:01 |
+| MATH_STATS | Math & Statistics | 2.0 | 1.0 | low | diagnostic_pending | Evidence from ML metrics exposure and ongoing math study. | Needs practical statistics diagnostic for distributions, averages, variance, correlation, hypothesis testing basics, and model evaluation. |  | 19 | 2026-07-22 18:53:20 |
+| ML | Machine Learning | 2.5 | 1.5 | low | diagnostic_pending | Evidence from scikit-learn classifier workflow, train/test split, metrics, confusion matrix, prediction probability, and joblib model persistence. | Needs ML concept diagnostic focused on leakage, metrics, train/test split, and interpretation. | ml_concepts_001 | 7 | 2026-07-22 18:53:20 |
+| MLOPS | ML Operations | 1.0 | 0.5 | low | not_started | Minimal evidence from joblib model persistence and Docker exposure. | Needs model packaging, inference API, reproducibility, and monitoring basics if ML branch becomes active. |  | 20 | 2026-07-22 18:53:20 |
+| NETWORKING_SECURITY | Networking & Security Basics | 0.5 | 0.0 | low | not_started | Minimal indirect exposure through APIs and local services. | Needs HTTP, ports, environment variables, secrets, IAM/security basics if cloud branch becomes active. |  | 22 | 2026-07-22 18:53:20 |
+| PROJECT_REASONING | Project Reasoning | 3.0 | 2.5 | medium | updated_by_evaluation | Evaluation 001 repair gate: improved valid-row and revenue-eligibility reasoning. | Full project explanation and independent diagnostic still pending. | project_explanation_001 | 28 | 2026-07-22 21:32:21 |
+| PYTHON_DATA_WORK | Python Data Work | 3.5 | 2.5 | medium | diagnostic_pending | Evidence from Python scripts for data generation, CSV handling, pandas workflows, exports, and project automation. | Needs independent pandas/Python diagnostic without full solution scaffolding. | pandas_fundamentals_001 | 2 | 2026-07-22 18:53:20 |
+| REPORTING | Reporting & BI | 3.0 | 2.5 | medium | diagnostic_pending | Evidence from CSV reports, revenue summaries, charts, and written observations. | Needs stronger spreadsheet/BI reporting diagnostic with pivot tables, charts, and metric interpretation. | spreadsheet_reporting_001 | 4 | 2026-07-22 18:53:20 |
+| SQL_DATABASES | SQL & Databases | 3.0 | 2.5 | medium | updated_by_evaluation | Evaluation 001 repair gate: corrected JOIN, LEFT JOIN, missing-reference, and filtering patterns after acknowledged assistance. | Full independent SQL/data-quality diagnostic still pending. | sql_independence_001 | 24 | 2026-07-22 21:32:21 |
+| SYNTHETIC_DATA | Synthetic Data | 3.0 | 2.0 | medium | diagnostic_pending | Evidence from synthetic customers, sales, monitoring records, student records, dropout simulation, and weighted sampling. | Needs clearer documentation of assumptions, distributions, and limitations. |  | 8 | 2026-07-22 18:53:20 |
+| SYSTEM_INTEGRATION | System Integration | 0.0 | 0.0 | low | not_started | No accepted current evidence yet. | Needs API/system integration proof. |  |  | 2026-07-24 19:38:01 |
+| TESTING_DEBUGGING | Testing & Debugging | 2.0 | 1.5 | low | updated_by_evaluation | Evaluation 001 repair gate: corrected syntax, alias, join, and condition errors through attempts. | Debugging remains assisted; independent error-repair proof still needed. |  | 27 | 2026-07-22 21:32:21 |
+| VISUALIZATION | Data Visualization | 2.5 | 1.5 | low | diagnostic_pending | Evidence from matplotlib charts and Plotly geospatial visualizations. | Needs chart selection, chart interpretation, and dashboard-style reporting practice. | spreadsheet_reporting_001 | 5 | 2026-07-22 18:53:20 |
+| WORKFLOW_TOOLS | Workflow Tools | 2.5 | 1.5 | low | diagnostic_pending | Evidence from GitHub project organization, Docker Compose, Dockerfile exposure, Linux terminal usage, requirements files, and run scripts. | Needs terminal/Git/Docker workflow diagnostic. | workflow_tools_001 | 10 | 2026-07-22 18:53:20 |
+
+## Targets
+
+| id | name | status |
+| --- | --- | --- |
+| ai_ml_engineer | AI / ML Engineer | active |
+| analytics_engineer | Analytics Engineer | active |
+| applied_ai_software_engineer | Applied AI Software Engineer | active |
+| cloud_engineer | Cloud Engineer | active |
+| data_analyst_bi | Data Analyst / BI Analyst | active |
+| data_engineer | Data Engineer | active |
+| data_scientist | Data Scientist | active |
+| strong_data_specialist_core | Strong Data Specialist Core | active |
+
+## Target Thresholds
+
+| target_id | skill_cluster_id | target_reliability | priority |
+| --- | --- | --- | --- |
+| ai_ml_engineer | APIS_WEB_APPS | 5.0 | core |
+| ai_ml_engineer | BIG_DATA_DATA_LAKE | 4.0 | secondary |
+| ai_ml_engineer | BUSINESS_ANALYSIS | 4.0 | secondary |
+| ai_ml_engineer | CLOUD_DATA_PLATFORMS | 5.0 | core |
+| ai_ml_engineer | CONTAINERS_CI_CD | 5.0 | core |
+| ai_ml_engineer | DATA_MODELING | 4.0 | secondary |
+| ai_ml_engineer | DATA_QUALITY | 5.0 | core |
+| ai_ml_engineer | DOCUMENTATION | 5.0 | core |
+| ai_ml_engineer | ETL_PIPELINES | 4.0 | secondary |
+| ai_ml_engineer | GEOSPATIAL | 2.0 | later |
+| ai_ml_engineer | LINUX_SYSTEMS | 4.0 | secondary |
+| ai_ml_engineer | MATH_STATS | 5.0 | core |
+| ai_ml_engineer | ML | 6.0 | core |
+| ai_ml_engineer | MLOPS | 6.0 | core |
+| ai_ml_engineer | NETWORKING_SECURITY | 3.0 | secondary |
+| ai_ml_engineer | PROJECT_REASONING | 6.0 | core |
+| ai_ml_engineer | PYTHON_DATA_WORK | 6.0 | core |
+| ai_ml_engineer | REPORTING | 3.0 | secondary |
+| ai_ml_engineer | SQL_DATABASES | 4.0 | secondary |
+| ai_ml_engineer | SYNTHETIC_DATA | 5.0 | secondary |
+| ai_ml_engineer | TESTING_DEBUGGING | 6.0 | core |
+| ai_ml_engineer | VISUALIZATION | 4.0 | secondary |
+| ai_ml_engineer | WORKFLOW_TOOLS | 5.0 | core |
+| analytics_engineer | APIS_WEB_APPS | 3.0 | secondary |
+| analytics_engineer | BIG_DATA_DATA_LAKE | 4.0 | secondary |
+| analytics_engineer | BUSINESS_ANALYSIS | 5.0 | core |
+| analytics_engineer | CLOUD_DATA_PLATFORMS | 4.0 | secondary |
+| analytics_engineer | CONTAINERS_CI_CD | 4.0 | secondary |
+| analytics_engineer | DATA_MODELING | 7.0 | core |
+| analytics_engineer | DATA_QUALITY | 6.0 | core |
+| analytics_engineer | DOCUMENTATION | 6.0 | core |
+| analytics_engineer | ETL_PIPELINES | 6.0 | core |
+| analytics_engineer | GEOSPATIAL | 2.0 | later |
+| analytics_engineer | LINUX_SYSTEMS | 4.0 | secondary |
+| analytics_engineer | MATH_STATS | 3.0 | secondary |
+| analytics_engineer | ML | 3.0 | secondary |
+| analytics_engineer | MLOPS | 2.0 | later |
+| analytics_engineer | NETWORKING_SECURITY | 2.0 | later |
+| analytics_engineer | PROJECT_REASONING | 6.0 | core |
+| analytics_engineer | PYTHON_DATA_WORK | 5.0 | core |
+| analytics_engineer | REPORTING | 5.0 | core |
+| analytics_engineer | SQL_DATABASES | 7.0 | core |
+| analytics_engineer | SYNTHETIC_DATA | 4.0 | secondary |
+| analytics_engineer | TESTING_DEBUGGING | 5.0 | core |
+| analytics_engineer | VISUALIZATION | 4.0 | secondary |
+| analytics_engineer | WORKFLOW_TOOLS | 5.0 | core |
+| applied_ai_software_engineer | AGENTIC_WORKFLOWS | 5.0 | core |
+| applied_ai_software_engineer | AI_ASSISTED_DEVELOPMENT | 6.0 | core |
+| applied_ai_software_engineer | APIS_WEB_APPS | 6.0 | core |
+| applied_ai_software_engineer | CLOUD_DATA_PLATFORMS | 4.0 | secondary |
+| applied_ai_software_engineer | CONTAINERS_CI_CD | 5.0 | core |
+| applied_ai_software_engineer | DATA_QUALITY | 3.0 | secondary |
+| applied_ai_software_engineer | DOCUMENTATION | 5.0 | core |
+| applied_ai_software_engineer | EVENT_DRIVEN_SYSTEMS | 4.0 | secondary |
+| applied_ai_software_engineer | FRONTEND_APPS | 4.0 | secondary |
+| applied_ai_software_engineer | JAVA_BACKEND | 5.0 | core |
+| applied_ai_software_engineer | LLM_APP_ENGINEERING | 6.0 | core |
+| applied_ai_software_engineer | ML | 3.0 | secondary |
+| applied_ai_software_engineer | MLOPS | 3.0 | secondary |
+| applied_ai_software_engineer | PROJECT_REASONING | 6.0 | core |
+| applied_ai_software_engineer | PYTHON_DATA_WORK | 6.0 | core |
+| applied_ai_software_engineer | SQL_DATABASES | 4.0 | secondary |
+| applied_ai_software_engineer | SYSTEM_INTEGRATION | 6.0 | core |
+| applied_ai_software_engineer | TESTING_DEBUGGING | 6.0 | core |
+| applied_ai_software_engineer | WORKFLOW_TOOLS | 5.0 | core |
+| cloud_engineer | APIS_WEB_APPS | 3.0 | secondary |
+| cloud_engineer | BIG_DATA_DATA_LAKE | 3.0 | secondary |
+| cloud_engineer | BUSINESS_ANALYSIS | 3.0 | secondary |
+| cloud_engineer | CLOUD_DATA_PLATFORMS | 7.0 | core |
+| cloud_engineer | CONTAINERS_CI_CD | 6.0 | core |
+| cloud_engineer | DATA_MODELING | 3.0 | secondary |
+| cloud_engineer | DATA_QUALITY | 4.0 | secondary |
+| cloud_engineer | DOCUMENTATION | 5.0 | core |
+| cloud_engineer | ETL_PIPELINES | 4.0 | secondary |
+| cloud_engineer | GEOSPATIAL | 0.0 | later |
+| cloud_engineer | LINUX_SYSTEMS | 6.0 | core |
+| cloud_engineer | MATH_STATS | 1.0 | later |
+| cloud_engineer | ML | 2.0 | later |
+| cloud_engineer | MLOPS | 4.0 | secondary |
+| cloud_engineer | NETWORKING_SECURITY | 6.0 | core |
+| cloud_engineer | PROJECT_REASONING | 6.0 | core |
+| cloud_engineer | PYTHON_DATA_WORK | 4.0 | secondary |
+| cloud_engineer | REPORTING | 2.0 | later |
+| cloud_engineer | SQL_DATABASES | 3.0 | secondary |
+| cloud_engineer | SYNTHETIC_DATA | 2.0 | later |
+| cloud_engineer | TESTING_DEBUGGING | 6.0 | core |
+| cloud_engineer | VISUALIZATION | 2.0 | later |
+| cloud_engineer | WORKFLOW_TOOLS | 6.0 | core |
+| data_analyst_bi | APIS_WEB_APPS | 2.0 | later |
+| data_analyst_bi | BIG_DATA_DATA_LAKE | 1.0 | later |
+| data_analyst_bi | BUSINESS_ANALYSIS | 6.0 | core |
+| data_analyst_bi | CLOUD_DATA_PLATFORMS | 2.0 | later |
+| data_analyst_bi | CONTAINERS_CI_CD | 1.0 | later |
+| data_analyst_bi | DATA_MODELING | 4.0 | secondary |
+| data_analyst_bi | DATA_QUALITY | 5.0 | core |
+| data_analyst_bi | DOCUMENTATION | 4.0 | core |
+| data_analyst_bi | ETL_PIPELINES | 3.0 | secondary |
+| data_analyst_bi | GEOSPATIAL | 2.0 | later |
+| data_analyst_bi | LINUX_SYSTEMS | 2.0 | later |
+| data_analyst_bi | MATH_STATS | 4.0 | secondary |
+| data_analyst_bi | ML | 2.0 | later |
+| data_analyst_bi | MLOPS | 0.0 | later |
+| data_analyst_bi | NETWORKING_SECURITY | 1.0 | later |
+| data_analyst_bi | PROJECT_REASONING | 5.0 | core |
+| data_analyst_bi | PYTHON_DATA_WORK | 4.0 | secondary |
+| data_analyst_bi | REPORTING | 6.0 | core |
+| data_analyst_bi | SQL_DATABASES | 6.0 | core |
+| data_analyst_bi | SYNTHETIC_DATA | 3.0 | secondary |
+| data_analyst_bi | TESTING_DEBUGGING | 3.0 | secondary |
+| data_analyst_bi | VISUALIZATION | 6.0 | core |
+| data_analyst_bi | WORKFLOW_TOOLS | 3.0 | secondary |
+| data_engineer | APIS_WEB_APPS | 4.0 | secondary |
+| data_engineer | BIG_DATA_DATA_LAKE | 6.0 | core |
+| data_engineer | BUSINESS_ANALYSIS | 4.0 | secondary |
+| data_engineer | CLOUD_DATA_PLATFORMS | 5.0 | core |
+| data_engineer | CONTAINERS_CI_CD | 5.0 | core |
+| data_engineer | DATA_MODELING | 6.0 | core |
+| data_engineer | DATA_QUALITY | 6.0 | core |
+| data_engineer | DOCUMENTATION | 5.0 | core |
+| data_engineer | ETL_PIPELINES | 7.0 | core |
+| data_engineer | GEOSPATIAL | 2.0 | later |
+| data_engineer | LINUX_SYSTEMS | 5.0 | core |
+| data_engineer | MATH_STATS | 2.0 | later |
+| data_engineer | ML | 2.0 | later |
+| data_engineer | MLOPS | 3.0 | secondary |
+| data_engineer | NETWORKING_SECURITY | 3.0 | secondary |
+| data_engineer | PROJECT_REASONING | 6.0 | core |
+| data_engineer | PYTHON_DATA_WORK | 6.0 | core |
+| data_engineer | REPORTING | 3.0 | secondary |
+| data_engineer | SQL_DATABASES | 6.0 | core |
+| data_engineer | SYNTHETIC_DATA | 4.0 | secondary |
+| data_engineer | TESTING_DEBUGGING | 6.0 | core |
+| data_engineer | VISUALIZATION | 3.0 | secondary |
+| data_engineer | WORKFLOW_TOOLS | 6.0 | core |
+| data_scientist | APIS_WEB_APPS | 3.0 | secondary |
+| data_scientist | BIG_DATA_DATA_LAKE | 4.0 | secondary |
+| data_scientist | BUSINESS_ANALYSIS | 6.0 | core |
+| data_scientist | CLOUD_DATA_PLATFORMS | 4.0 | secondary |
+| data_scientist | CONTAINERS_CI_CD | 3.0 | secondary |
+| data_scientist | DATA_MODELING | 5.0 | secondary |
+| data_scientist | DATA_QUALITY | 5.0 | core |
+| data_scientist | DOCUMENTATION | 5.0 | core |
+| data_scientist | ETL_PIPELINES | 4.0 | secondary |
+| data_scientist | GEOSPATIAL | 3.0 | secondary |
+| data_scientist | LINUX_SYSTEMS | 3.0 | secondary |
+| data_scientist | MATH_STATS | 6.0 | core |
+| data_scientist | ML | 6.0 | core |
+| data_scientist | MLOPS | 3.0 | secondary |
+| data_scientist | NETWORKING_SECURITY | 2.0 | later |
+| data_scientist | PROJECT_REASONING | 6.0 | core |
+| data_scientist | PYTHON_DATA_WORK | 6.0 | core |
+| data_scientist | REPORTING | 5.0 | core |
+| data_scientist | SQL_DATABASES | 6.0 | core |
+| data_scientist | SYNTHETIC_DATA | 5.0 | secondary |
+| data_scientist | TESTING_DEBUGGING | 4.0 | secondary |
+| data_scientist | VISUALIZATION | 6.0 | core |
+| data_scientist | WORKFLOW_TOOLS | 5.0 | core |
+| strong_data_specialist_core | APIS_WEB_APPS | 4.0 | secondary |
+| strong_data_specialist_core | BIG_DATA_DATA_LAKE | 4.0 | secondary |
+| strong_data_specialist_core | BUSINESS_ANALYSIS | 5.0 | core |
+| strong_data_specialist_core | CLOUD_DATA_PLATFORMS | 4.0 | secondary |
+| strong_data_specialist_core | CONTAINERS_CI_CD | 4.0 | secondary |
+| strong_data_specialist_core | DATA_MODELING | 6.0 | core |
+| strong_data_specialist_core | DATA_QUALITY | 6.0 | core |
+| strong_data_specialist_core | DOCUMENTATION | 5.0 | core |
+| strong_data_specialist_core | ETL_PIPELINES | 6.0 | core |
+| strong_data_specialist_core | GEOSPATIAL | 3.0 | secondary |
+| strong_data_specialist_core | LINUX_SYSTEMS | 4.0 | secondary |
+| strong_data_specialist_core | MATH_STATS | 4.0 | secondary |
+| strong_data_specialist_core | ML | 4.0 | secondary |
+| strong_data_specialist_core | MLOPS | 3.0 | later |
+| strong_data_specialist_core | NETWORKING_SECURITY | 3.0 | later |
+| strong_data_specialist_core | PROJECT_REASONING | 6.0 | core |
+| strong_data_specialist_core | PYTHON_DATA_WORK | 6.0 | core |
+| strong_data_specialist_core | REPORTING | 5.0 | core |
+| strong_data_specialist_core | SQL_DATABASES | 6.0 | core |
+| strong_data_specialist_core | SYNTHETIC_DATA | 4.0 | secondary |
+| strong_data_specialist_core | TESTING_DEBUGGING | 5.0 | core |
+| strong_data_specialist_core | VISUALIZATION | 5.0 | core |
+| strong_data_specialist_core | WORKFLOW_TOOLS | 5.0 | core |
+
+## Diagnostics
+
+| id | name | status | target_id |
+| --- | --- | --- | --- |
+| ml_concepts_001 | ML Concepts Diagnostic | planned |  |
+| pandas_fundamentals_001 | pandas Fundamentals Diagnostic | planned |  |
+| project_explanation_001 | Project Explanation Diagnostic | planned |  |
+| spreadsheet_reporting_001 | Spreadsheet Reporting Diagnostic | planned |  |
+| sql_independence_001 | SQL Independence Diagnostic | planned |  |
+| workflow_tools_001 | Workflow Tools Diagnostic | planned |  |
+
+## Modules
+
+_No rows._
+
+## Tasks
+
+_No rows._
