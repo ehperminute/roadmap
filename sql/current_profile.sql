@@ -44,13 +44,15 @@ CREATE TABLE IF NOT EXISTS profile_rating_events (
     reason TEXT NOT NULL,
 
     evidence_item_id INTEGER,
-    diagnostic_attempt_id INTEGER,
+    diagnostic_id TEXT,
 
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (skill_cluster_id) REFERENCES skill_clusters(id),
     FOREIGN KEY (evidence_item_id) REFERENCES evidence_items(id),
-    FOREIGN KEY (diagnostic_attempt_id) REFERENCES diagnostic_attempts(id)
+    FOREIGN KEY (diagnostic_id) REFERENCES diagnostics(id),
+
+    UNIQUE (diagnostic_id, skill_cluster_id)
 );
 
 -- ============================================================
@@ -214,16 +216,7 @@ VALUES
 ('CONTAINERS_CI_CD', 2.0, 1.0, 'low', 'diagnostic_pending',
  'Evidence from Dockerfile, Docker Compose, and project containerization exposure.',
  'Needs container build/run/debug and simple CI validation evidence.',
- 'workflow_tools_001')
-ON CONFLICT(skill_cluster_id) DO UPDATE SET
-    artifact_rating = excluded.artifact_rating,
-    reliability_rating = excluded.reliability_rating,
-    confidence_level = excluded.confidence_level,
-    rating_status = excluded.rating_status,
-    evidence_summary = excluded.evidence_summary,
-    current_limitations = excluded.current_limitations,
-    next_diagnostic_id = excluded.next_diagnostic_id,
-    updated_at = CURRENT_TIMESTAMP;
+ 'workflow_tools_001');
 
 -- ============================================================
 -- Optional: seed rating events from current state
@@ -346,3 +339,4 @@ ORDER BY
     skill_cluster_id;
 
 COMMIT;
+
