@@ -2,25 +2,26 @@ PRAGMA foreign_keys = ON;
 
 BEGIN TRANSACTION;
 
-UPDATE diagnostics
-SET
-    name = 'SQL Independence Evaluation 002',
-    description = 'Commerce SQL and project-reasoning evaluation covering reporting, joins, aggregation, data quality, interpretation, and debugging.',
-    status = 'active',
-    result = 'partial',
-    score = 7.8,
-    assistance_level = 'assisted_acknowledged',
-    submission_text = 'See proofs/002_commerce_sql_project_reasoning.md.',
-    evaluator_notes = 'Questions 1-10 received immediate feedback. Basic reporting SQL was demonstrated; a full independent pass remains pending.',
-    updated_at = CURRENT_TIMESTAMP
-WHERE id = 'sql_independence_002';
-
-INSERT INTO diagnostic_skill_clusters (diagnostic_id, skill_cluster_id)
-VALUES
-('sql_independence_002', 'SQL_DATABASES'),
-('sql_independence_002', 'PROJECT_REASONING'),
-('sql_independence_002', 'DATA_QUALITY'),
-('sql_independence_002', 'TESTING_DEBUGGING');
+INSERT INTO diagnostics (
+    id,
+    name,
+    description,
+    result,
+    score,
+    assistance_level,
+    submission_text,
+    evaluator_notes
+)
+VALUES (
+    'sql_independence_002',
+    'Commerce SQL and Project Reasoning Evaluation',
+    'Evaluation covering reporting SQL, joins, aggregation, data quality, interpretation, project reasoning, and debugging.',
+    'partial',
+    7.8,
+    'assisted_acknowledged',
+    'See proofs/002_commerce_sql_project_reasoning.md.',
+    'Questions 1-10 received immediate feedback. Basic reporting SQL was demonstrated; anti-joins, NULL behavior, exact grouping rules, and top-per-group logic remain incomplete.'
+);
 
 INSERT INTO diagnostic_skill_results
 (diagnostic_id, skill_cluster_id, result, score, notes)
@@ -50,15 +51,6 @@ VALUES
  'Evaluation 002 described a reasonable incremental process for diagnosing a join that returns zero rows.',
  'sql_independence_002');
 
--- A future independent retry gets the next unique diagnostic ID.
-INSERT INTO diagnostics (id, name, description, status)
-VALUES (
-    'sql_independence_003',
-    'SQL Independence Evaluation 003',
-    'Independent follow-up focused on anti-joins, NULL behavior, CTEs, window functions, and top-per-group reporting.',
-    'planned'
-);
-
 UPDATE profile_skill_state
 SET
     artifact_rating = 3.0,
@@ -66,10 +58,10 @@ SET
     confidence_level = 'medium',
     rating_status = 'updated_by_evaluation',
     evidence_summary = 'Evaluation 002: basic reporting joins, aggregation, date grouping, filtering, duplicate detection, and revenue calculations completed with acknowledged assistance.',
-    current_limitations = 'Full independent SQL diagnostic remains pending. Needs anti-joins, NULL/count behavior, CTEs, window functions, and top-per-group practice.',
-    next_diagnostic_id = 'sql_independence_003',
+    current_limitations = 'Needs anti-joins, NULL/count behavior, CTEs, window functions, and top-per-group practice before an independent SQL pass.',
     last_event_id = (
-        SELECT id FROM profile_rating_events
+        SELECT id
+        FROM profile_rating_events
         WHERE diagnostic_id = 'sql_independence_002'
           AND skill_cluster_id = 'SQL_DATABASES'
     ),
@@ -83,10 +75,10 @@ SET
     confidence_level = 'medium',
     rating_status = 'updated_by_evaluation',
     evidence_summary = 'Evaluation 002: demonstrated project flow, table relationships, data origins, and synthetic-data limitations.',
-    current_limitations = 'Needs a future unassisted project-explanation diagnostic for stronger confidence.',
-    next_diagnostic_id = 'project_explanation_001',
+    current_limitations = 'A future unassisted project explanation would increase confidence.',
     last_event_id = (
-        SELECT id FROM profile_rating_events
+        SELECT id
+        FROM profile_rating_events
         WHERE diagnostic_id = 'sql_independence_002'
           AND skill_cluster_id = 'PROJECT_REASONING'
     ),
@@ -101,9 +93,9 @@ SET
     rating_status = 'updated_by_evaluation',
     evidence_summary = 'Evaluation 002: duplicate and cross-table date-consistency checks demonstrated; reliability remains unchanged.',
     current_limitations = 'Needs reliable anti-join, unmatched-record, and NULL/count handling.',
-    next_diagnostic_id = 'sql_independence_003',
     last_event_id = (
-        SELECT id FROM profile_rating_events
+        SELECT id
+        FROM profile_rating_events
         WHERE diagnostic_id = 'sql_independence_002'
           AND skill_cluster_id = 'DATA_QUALITY'
     ),
@@ -119,7 +111,8 @@ SET
     evidence_summary = 'Evaluation 002: described an incremental method for debugging a join that returns zero rows.',
     current_limitations = 'Debugging reasoning was verbal; independent execution and repair evidence remain pending.',
     last_event_id = (
-        SELECT id FROM profile_rating_events
+        SELECT id
+        FROM profile_rating_events
         WHERE diagnostic_id = 'sql_independence_002'
           AND skill_cluster_id = 'TESTING_DEBUGGING'
     ),

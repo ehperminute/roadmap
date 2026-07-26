@@ -2,27 +2,26 @@ PRAGMA foreign_keys = ON;
 
 BEGIN TRANSACTION;
 
--- Evaluation 001 completes the pre-seeded sql_independence_001 record.
-UPDATE diagnostics
-SET
-    name = 'SQL Independence Evaluation 001',
-    description = 'SQL and data-quality repair gate completed after acknowledged assistance.',
-    status = 'active',
-    result = 'partial',
-    score = 5.0,
-    assistance_level = 'assisted_acknowledged',
-    submission_text = 'See proofs/001_sql_data_quality_modeling.md.',
-    evaluator_notes = 'Small profile update only. Full independent diagnostic remains pending.',
-    updated_at = CURRENT_TIMESTAMP
-WHERE id = 'sql_independence_001';
-
-INSERT INTO diagnostic_skill_clusters (diagnostic_id, skill_cluster_id)
-VALUES
-('sql_independence_001', 'SQL_DATABASES'),
-('sql_independence_001', 'DATA_QUALITY'),
-('sql_independence_001', 'DATA_MODELING'),
-('sql_independence_001', 'TESTING_DEBUGGING'),
-('sql_independence_001', 'PROJECT_REASONING');
+INSERT INTO diagnostics (
+    id,
+    name,
+    description,
+    result,
+    score,
+    assistance_level,
+    submission_text,
+    evaluator_notes
+)
+VALUES (
+    'sql_independence_001',
+    'SQL Independence Evaluation 001',
+    'SQL and data-quality repair gate completed after acknowledged assistance.',
+    'partial',
+    5.0,
+    'assisted_acknowledged',
+    'See proofs/001_sql_data_quality_modeling.md.',
+    'Small profile update only. Full independent SQL reliability remained unverified.'
+);
 
 INSERT INTO diagnostic_skill_results
 (diagnostic_id, skill_cluster_id, result, score, notes)
@@ -57,15 +56,6 @@ VALUES
  'Improved reasoning about valid rows, missing references, and revenue eligibility.',
  'sql_independence_001');
 
--- Evaluation 002 is defined here so profile rows may reference it as next.
-INSERT INTO diagnostics (id, name, description, status)
-VALUES (
-    'sql_independence_002',
-    'SQL Independence Evaluation 002',
-    'Commerce SQL and project-reasoning evaluation.',
-    'planned'
-);
-
 UPDATE profile_skill_state
 SET
     artifact_rating = 3.0,
@@ -74,9 +64,9 @@ SET
     rating_status = 'updated_by_evaluation',
     evidence_summary = 'Evaluation 001 repair gate: corrected JOIN, LEFT JOIN, missing-reference, and filtering patterns after acknowledged assistance.',
     current_limitations = 'Full independent SQL/data-quality diagnostic still pending.',
-    next_diagnostic_id = 'sql_independence_002',
     last_event_id = (
-        SELECT id FROM profile_rating_events
+        SELECT id
+        FROM profile_rating_events
         WHERE diagnostic_id = 'sql_independence_001'
           AND skill_cluster_id = profile_skill_state.skill_cluster_id
     ),
@@ -92,7 +82,8 @@ SET
     evidence_summary = 'Evaluation 001 repair gate: improved table relationship logic.',
     current_limitations = 'Needs stronger independent schema, grain, and relationship checks.',
     last_event_id = (
-        SELECT id FROM profile_rating_events
+        SELECT id
+        FROM profile_rating_events
         WHERE diagnostic_id = 'sql_independence_001'
           AND skill_cluster_id = 'DATA_MODELING'
     ),
@@ -108,7 +99,8 @@ SET
     evidence_summary = 'Evaluation 001 repair gate: corrected syntax, alias, join, and condition errors through attempts.',
     current_limitations = 'Debugging remains assisted; independent error-repair proof still needed.',
     last_event_id = (
-        SELECT id FROM profile_rating_events
+        SELECT id
+        FROM profile_rating_events
         WHERE diagnostic_id = 'sql_independence_001'
           AND skill_cluster_id = 'TESTING_DEBUGGING'
     ),
@@ -124,7 +116,8 @@ SET
     evidence_summary = 'Evaluation 001 repair gate: improved valid-row and revenue-eligibility reasoning.',
     current_limitations = 'Full project explanation and independent diagnostic still pending.',
     last_event_id = (
-        SELECT id FROM profile_rating_events
+        SELECT id
+        FROM profile_rating_events
         WHERE diagnostic_id = 'sql_independence_001'
           AND skill_cluster_id = 'PROJECT_REASONING'
     ),

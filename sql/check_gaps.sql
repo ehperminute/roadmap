@@ -7,8 +7,7 @@ SELECT
     target_reliability AS target,
     reliability_gap AS gap,
     priority,
-    rating_status,
-    next_diagnostic_id
+    rating_status
 FROM current_profile_gap_summary
 ORDER BY
     CASE priority
@@ -17,4 +16,5 @@ ORDER BY
         WHEN 'later' THEN 3
         ELSE 4
     END,
-    reliability_gap DESC;
+    reliability_gap DESC,
+    skill_cluster_id;

@@ -246,8 +246,9 @@ CREATE TABLE IF NOT EXISTS target_thresholds (
 
 -- ============================================================
 -- Diagnostics / evaluations
--- Each numbered diagnostic ID represents one evaluation.
--- Example: sql_independence_001, sql_independence_002, ...
+-- One row equals one evaluation that actually occurred.
+-- IDs are sequential inside a family:
+-- sql_independence_001, sql_independence_002, ...
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS diagnostics (
@@ -256,10 +257,7 @@ CREATE TABLE IF NOT EXISTS diagnostics (
     description TEXT,
     target_id TEXT,
 
-    status TEXT NOT NULL DEFAULT 'planned'
-        CHECK (status IN ('planned', 'active', 'passed', 'failed', 'archived')),
-
-    result TEXT CHECK (
+    result TEXT NOT NULL CHECK (
         result IN ('passed', 'failed', 'partial', 'not_scored')
     ),
 
@@ -279,69 +277,190 @@ CREATE TABLE IF NOT EXISTS diagnostics (
 
     submission_text TEXT,
     evaluator_notes TEXT,
-
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CHECK (
+        (result = 'not_scored' AND score IS NULL)
+        OR
+        (result <> 'not_scored' AND score IS NOT NULL)
+    ),
 
     FOREIGN KEY (target_id) REFERENCES targets(id)
-);
-
-CREATE TABLE IF NOT EXISTS diagnostic_skill_clusters (
-    diagnostic_id TEXT NOT NULL,
-    skill_cluster_id TEXT NOT NULL,
-
-    PRIMARY KEY (diagnostic_id, skill_cluster_id),
-
-    FOREIGN KEY (diagnostic_id) REFERENCES diagnostics(id),
-    FOREIGN KEY (skill_cluster_id) REFERENCES skill_clusters(id)
 );
 
 CREATE TABLE IF NOT EXISTS diagnostic_skill_results (
     diagnostic_id TEXT NOT NULL,
     skill_cluster_id TEXT NOT NULL,
+
     result TEXT NOT NULL CHECK (
         result IN ('passed', 'failed', 'partial', 'not_scored')
     ),
+
     score REAL CHECK (score BETWEEN 0 AND 10),
     notes TEXT,
 
     PRIMARY KEY (diagnostic_id, skill_cluster_id),
 
     FOREIGN KEY (diagnostic_id) REFERENCES diagnostics(id),
-    FOREIGN KEY (skill_cluster_id) REFERENCES skill_clusters(id)
+    FOREIGN KEY (skill_cluster_id) REFERENCES skill_clusters(id),
+
+    CHECK (
+        (result = 'not_scored' AND score IS NULL)
+        OR
+        (result <> 'not_scored' AND score IS NOT NULL)
+    )
 );
 
-INSERT OR IGNORE INTO diagnostics (id, name, description, status)
-VALUES
-('project_explanation_001',
- 'Project Explanation Diagnostic',
- 'Explain project structure, files, data flow, assumptions, limitations, and debugging points.',
- 'planned'),
+-- ============================================================
+-- Profile rating history
+-- ============================================================
 
-('sql_independence_001',
- 'SQL Independence Diagnostic',
- 'Write and explain SQL queries involving joins, aggregation, date grouping, validation checks, and data-quality logic.',
- 'planned'),
+CREATE TABLE IF NOT EXISTS profile_rating_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-('pandas_fundamentals_001',
- 'pandas Fundamentals Diagnostic',
- 'Clean, transform, aggregate, and export data using pandas without full solution scaffolding.',
- 'planned'),
+    skill_cluster_id TEXT NOT NULL,
 
-('spreadsheet_reporting_001',
- 'Spreadsheet Reporting Diagnostic',
- 'Create pivot-style summaries, charts, and written observations from tabular data.',
- 'planned'),
+    artifact_rating REAL NOT NULL CHECK (artifact_rating BETWEEN 0 AND 10),
+    reliability_rating REAL NOT NULL CHECK (reliability_rating BETWEEN 0 AND 10),
 
-('workflow_tools_001',
- 'Workflow Tools Diagnostic',
- 'Use terminal, Git, project files, Docker basics, and error interpretation in a practical workflow.',
- 'planned'),
+    confidence_level TEXT NOT NULL CHECK (
+        confidence_level IN ('low', 'medium', 'high')
+    ),
 
-('ml_concepts_001',
- 'ML Concepts Diagnostic',
- 'Explain train/test split, leakage, metrics, confusion matrix, probability, and basic model interpretation.',
- 'planned');
+    rating_status TEXT NOT NULL CHECK (
+        rating_status IN (
+            'not_started',
+            'artifact_based_estimate',
+            'diagnostic_pending',
+            'diagnostic_passed',
+            'diagnostic_failed',
+            'updated_by_evaluation',
+            'manual_adjustment'
+        )
+    ),
+
+    reason TEXT NOT NULL,
+
+    evidence_item_id INTEGER,
+    diagnostic_id TEXT,
+
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (skill_cluster_id) REFERENCES skill_clusters(id),
+    FOREIGN KEY (evidence_item_id) REFERENCES evidence_items(id),
+    FOREIGN KEY (diagnostic_id) REFERENCES diagnostics(id),
+
+    UNIQUE (diagnostic_id, skill_cluster_id)
+);
+
+-- ============================================================
+-- Materialized current profile state
+-- Initial values are inserted by sql/initial_profile.sql.
+-- Evaluation files update this table in chronological order.
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS profile_skill_state (
+    skill_cluster_id TEXT PRIMARY KEY,
+
+    artifact_rating REAL NOT NULL CHECK (artifact_rating BETWEEN 0 AND 10),
+    reliability_rating REAL NOT NULL CHECK (reliability_rating BETWEEN 0 AND 10),
+
+    confidence_level TEXT NOT NULL CHECK (
+        confidence_level IN ('low', 'medium', 'high')
+    ),
+
+    rating_status TEXT NOT NULL CHECK (
+        rating_status IN (
+            'not_started',
+            'artifact_based_estimate',
+            'diagnostic_pending',
+            'diagnostic_passed',
+            'diagnostic_failed',
+            'updated_by_evaluation',
+            'manual_adjustment'
+        )
+    ),
+
+    evidence_summary TEXT,
+    current_limitations TEXT,
+    last_event_id INTEGER,
+
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (skill_cluster_id) REFERENCES skill_clusters(id),
+    FOREIGN KEY (last_event_id) REFERENCES profile_rating_events(id)
+);
+
+-- ============================================================
+-- Current-profile views
+-- These always reflect the initial profile plus every evaluation
+-- loaded from updates_logs in filename order.
+-- ============================================================
+
+CREATE VIEW current_profile_ratings AS
+SELECT
+    ps.skill_cluster_id,
+    sc.name AS skill_cluster_name,
+    ps.artifact_rating,
+    ps.reliability_rating,
+    ps.confidence_level,
+    ps.rating_status,
+    ps.evidence_summary,
+    ps.current_limitations,
+    ps.last_event_id,
+    ps.updated_at
+FROM profile_skill_state ps
+JOIN skill_clusters sc
+    ON sc.id = ps.skill_cluster_id;
+
+CREATE VIEW current_profile_vs_target AS
+SELECT
+    t.id AS target_id,
+    t.name AS target_name,
+
+    sc.id AS skill_cluster_id,
+    sc.name AS skill_cluster_name,
+
+    ps.artifact_rating,
+    ps.reliability_rating,
+    tt.target_reliability,
+
+    ROUND(
+        tt.target_reliability - COALESCE(ps.reliability_rating, 0),
+        2
+    ) AS reliability_gap,
+
+    ps.confidence_level,
+    ps.rating_status,
+    tt.priority,
+
+    ps.evidence_summary,
+    ps.current_limitations,
+    ps.updated_at
+FROM target_thresholds tt
+JOIN targets t
+    ON t.id = tt.target_id
+JOIN skill_clusters sc
+    ON sc.id = tt.skill_cluster_id
+LEFT JOIN profile_skill_state ps
+    ON ps.skill_cluster_id = tt.skill_cluster_id
+WHERE t.status = 'active';
+
+CREATE VIEW current_profile_gap_summary AS
+SELECT
+    target_id,
+    target_name,
+    skill_cluster_id,
+    skill_cluster_name,
+    reliability_rating,
+    target_reliability,
+    reliability_gap,
+    confidence_level,
+    rating_status,
+    priority
+FROM current_profile_vs_target
+WHERE target_id = 'strong_data_specialist_core';
 
 -- ============================================================
 -- Modules, tasks, and current context

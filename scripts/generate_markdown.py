@@ -3,18 +3,43 @@ import sqlite3
 
 ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = ROOT / "roadmap.db"
-EXPORT_DIR = ROOT / "exports"
-EXPORT_DIR.mkdir(exist_ok=True)
 
-def rows(conn, query, params=()):
+
+def rows(conn: sqlite3.Connection, query: str, params=()):
     conn.row_factory = sqlite3.Row
     return conn.execute(query, params).fetchall()
 
+
+def clean(value) -> str:
+    if value is None:
+        return ""
+    return str(value).replace("|", "\\|").replace("\n", " ")
+
+
 def write(path: Path, content: str) -> None:
     path.write_text(content.strip() + "\n", encoding="utf-8")
-    print(f"Exported {path}")
+    print(f"Exported {path.relative_to(ROOT)}")
 
-def export_skill_map(conn):
+
+def export_scale(conn: sqlite3.Connection) -> None:
+    data = rows(conn, "SELECT score, meaning FROM scale_levels ORDER BY score;")
+
+    lines = [
+        "# SCALE.md",
+        "",
+        "## Rating Scale",
+        "",
+        "| Score | Meaning |",
+        "|---:|---|",
+    ]
+
+    for row in data:
+        lines.append(f"| {row['score']} | {clean(row['meaning'])} |")
+
+    write(ROOT / "SCALE.md", "\n".join(lines))
+
+
+def export_skill_map(conn: sqlite3.Connection) -> None:
     data = rows(conn, """
         SELECT id, name, specific_skills, tools
         FROM skill_clusters
@@ -27,7 +52,7 @@ def export_skill_map(conn):
         "",
         "## Purpose",
         "",
-        "This file defines the shared skill taxonomy.",
+        "This file is generated from the roadmap database.",
         "",
         "## Skill Map",
         "",
@@ -35,36 +60,41 @@ def export_skill_map(conn):
         "|---|---|---|---|",
     ]
 
-    for r in data:
+    for row in data:
         lines.append(
-            f"| `{r['id']}` | {r['name']} | {r['specific_skills']} | {r['tools']} |"
+            f"| `{row['id']}` | {clean(row['name'])} | "
+            f"{clean(row['specific_skills'])} | {clean(row['tools'])} |"
         )
 
-    write(EXPORT_DIR / "SKILL_MAP.md", "\n".join(lines))
+    write(ROOT / "SKILL_MAP.md", "\n".join(lines))
 
-def export_scale(conn):
-    data = rows(conn, "SELECT score, meaning FROM scale_levels ORDER BY score;")
 
-    lines = [
-        "# SCALE.md",
-        "",
-        "## Rating Scale",
-        "",
-        "| Score | Meaning |",
-        "|---:|---|",
-    ]
-
-    for r in data:
-        lines.append(f"| {r['score']} | {r['meaning']} |")
-
-    write(EXPORT_DIR / "SCALE.md", "\n".join(lines))
-
-def export_profile(conn):
-    data = rows(conn, """
-        SELECT skill_cluster_id, skill_cluster_name, artifact_rating,
-               reliability_rating, rating_source, notes
+def export_profile(conn: sqlite3.Connection) -> None:
+    profile = rows(conn, """
+        SELECT
+            skill_cluster_id,
+            skill_cluster_name,
+            artifact_rating,
+            reliability_rating,
+            confidence_level,
+            rating_status,
+            evidence_summary,
+            current_limitations
         FROM current_profile_ratings
         ORDER BY skill_cluster_id;
+    """)
+
+    evaluations = rows(conn, """
+        SELECT
+            id,
+            name,
+            result,
+            score,
+            assistance_level,
+            submission_text,
+            created_at
+        FROM diagnostics
+        ORDER BY id;
     """)
 
     lines = [
@@ -72,23 +102,48 @@ def export_profile(conn):
         "",
         "## Purpose",
         "",
-        "This file summarizes the current evaluated skill profile.",
+        "This file is generated from `roadmap.db` after the initial profile and all numbered evaluations are loaded.",
+        "",
+        "Do not edit ratings here; change the initial profile or add an evaluation SQL file, rebuild the database, and regenerate this document.",
         "",
         "## Current Ratings",
         "",
-        "| Skill Cluster | Artifact Rating | Reliability Rating | Source | Notes |",
-        "|---|---:|---:|---|---|",
+        "| Skill Cluster | Artifact | Reliability | Confidence | Status | Evidence | Current limitations |",
+        "|---|---:|---:|---|---|---|---|",
     ]
 
-    for r in data:
+    for row in profile:
         lines.append(
-            f"| `{r['skill_cluster_id']}` | {r['artifact_rating']} | "
-            f"{r['reliability_rating']} | {r['rating_source']} | {r['notes'] or ''} |"
+            f"| `{row['skill_cluster_id']}` | "
+            f"{row['artifact_rating']} | "
+            f"{row['reliability_rating']} | "
+            f"{clean(row['confidence_level'])} | "
+            f"{clean(row['rating_status'])} | "
+            f"{clean(row['evidence_summary'])} | "
+            f"{clean(row['current_limitations'])} |"
         )
 
-    write(EXPORT_DIR / "PROFILE.md", "\n".join(lines))
+    lines.extend([
+        "",
+        "## Evaluation History",
+        "",
+        "| Evaluation ID | Name | Result | Score | Assistance | Evidence |",
+        "|---|---|---|---:|---|---|",
+    ])
 
-def export_module_current(conn):
+    for row in evaluations:
+        score = "" if row["score"] is None else row["score"]
+        lines.append(
+            f"| `{row['id']}` | {clean(row['name'])} | "
+            f"{clean(row['result'])} | {score} | "
+            f"{clean(row['assistance_level'])} | "
+            f"{clean(row['submission_text'])} |"
+        )
+
+    write(ROOT / "PROFILE.md", "\n".join(lines))
+
+
+def export_module_current(conn: sqlite3.Connection) -> None:
     data = rows(conn, """
         SELECT
             cc.current_focus,
@@ -99,41 +154,53 @@ def export_module_current(conn):
             task.title AS task_title,
             d.name AS diagnostic_name
         FROM current_context cc
-        LEFT JOIN targets t ON t.id = cc.active_target_id
-        LEFT JOIN modules m ON m.id = cc.active_module_id
-        LEFT JOIN tasks task ON task.id = cc.active_task_id
-        LEFT JOIN diagnostics d ON d.id = cc.active_diagnostic_id
+        LEFT JOIN targets t
+            ON t.id = cc.active_target_id
+        LEFT JOIN modules m
+            ON m.id = cc.active_module_id
+        LEFT JOIN tasks task
+            ON task.id = cc.active_task_id
+        LEFT JOIN diagnostics d
+            ON d.id = cc.active_diagnostic_id
         WHERE cc.id = 1;
     """)
 
-    r = data[0]
+    row = data[0]
 
     lines = [
         "# MODULE_CURRENT.md",
         "",
         "## Current Context",
         "",
-        f"- Target: {r['target_name']}",
-        f"- Module: {r['module_name']}",
-        f"- Task: {r['task_title']}",
-        f"- Diagnostic: {r['diagnostic_name']}",
-        f"- Focus: {r['current_focus']}",
-        f"- Next action: {r['next_action']}",
-        f"- Blocker: {r['blocker'] or 'None'}",
+        f"- Target: {clean(row['target_name']) or 'None'}",
+        f"- Module: {clean(row['module_name']) or 'None'}",
+        f"- Task: {clean(row['task_title']) or 'None'}",
+        f"- Diagnostic: {clean(row['diagnostic_name']) or 'None'}",
+        f"- Focus: {clean(row['current_focus']) or 'None'}",
+        f"- Next action: {clean(row['next_action']) or 'None'}",
+        f"- Blocker: {clean(row['blocker']) or 'None'}",
     ]
 
-    write(EXPORT_DIR / "MODULE_CURRENT.md", "\n".join(lines))
+    write(ROOT / "MODULE_CURRENT.md", "\n".join(lines))
 
-def main():
+
+def main() -> None:
+    if not DB_PATH.exists():
+        raise FileNotFoundError(
+            "roadmap.db does not exist. Run python scripts/init_db.py first."
+        )
+
     conn = sqlite3.connect(DB_PATH)
     conn.execute("PRAGMA foreign_keys = ON")
 
-    export_scale(conn)
-    export_skill_map(conn)
-    export_profile(conn)
-    export_module_current(conn)
+    try:
+        export_scale(conn)
+        export_skill_map(conn)
+        export_profile(conn)
+        export_module_current(conn)
+    finally:
+        conn.close()
 
-    conn.close()
 
 if __name__ == "__main__":
     main()
