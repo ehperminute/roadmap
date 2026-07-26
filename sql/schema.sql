@@ -524,7 +524,7 @@ CREATE TABLE IF NOT EXISTS current_context (
 INSERT OR IGNORE INTO current_context
 (id, current_focus, next_action, blocker)
 VALUES
-(1, 'Bootstrap roadmap database.', 'Create target profiles and current profile state.', NULL);
+(1, 'Roadmap database.', 'Create target profiles and current profile state.', NULL);
 
 -- ============================================================
 -- Market signals
