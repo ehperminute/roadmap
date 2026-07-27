@@ -4,56 +4,43 @@
 
 | id | active_target_id | active_module_id | active_task_id | active_diagnostic_id | current_focus | next_action | blocker | updated_at |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 |  |  |  |  | Bootstrap roadmap database. | Create target profiles and current profile state. |  | 2026-07-26 15:36:55 |
+| 1 |  |  |  |  | Roadmap database. | Create target profiles and current profile state. |  | 2026-07-27 20:43:04 |
 
 ## Current Profile Ratings
 
 | skill_cluster_id | skill_cluster_name | artifact_rating | reliability_rating | confidence_level | rating_status | evidence_summary | current_limitations | last_event_id | updated_at |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| APIS_WEB_APPS | APIs & Web Apps | 2.5 | 1.5 | low | diagnostic_pending | Evidence from FastAPI endpoints, JSON responses, Flask dashboard routes, and simple templates. | Needs endpoint explanation, debugging, and small modification diagnostic. | 1 | 2026-07-26 15:36:55 |
-| BIG_DATA_DATA_LAKE | Big Data & Data Lake | 0.0 | 0.0 | low | not_started | No accepted evidence yet. | Needs PySpark, Parquet, partitioning, and data lake layer evidence if this branch becomes active. | 2 | 2026-07-26 15:36:55 |
-| BUSINESS_ANALYSIS | Business Analysis | 2.0 | 1.5 | low | diagnostic_pending | Evidence from basic report interpretation and metric summaries. | Needs stronger KPI interpretation, stakeholder-style questions, and business-rule translation. | 3 | 2026-07-26 15:36:55 |
-| CLOUD_DATA_PLATFORMS | Cloud Data Platforms | 0.0 | 0.0 | low | not_started | No accepted evidence yet. | Needs cloud storage/database/warehouse basics if this branch becomes active. | 4 | 2026-07-26 15:36:55 |
-| CONTAINERS_CI_CD | Containers & CI/CD | 2.0 | 1.0 | low | diagnostic_pending | Evidence from Dockerfile, Docker Compose, and project containerization exposure. | Needs container build/run/debug and simple CI validation evidence. | 5 | 2026-07-26 15:36:55 |
-| DATA_MODELING | Data Modeling | 2.5 | 2.0 | medium | updated_by_evaluation | Evaluation 001 repair gate: improved table relationship logic. | Needs stronger independent schema, grain, and relationship checks. | 26 | 2026-07-26 15:36:55 |
-| DATA_QUALITY | Data Quality | 3.0 | 2.5 | medium | updated_by_evaluation | Evaluation 002: duplicate and cross-table date-consistency checks demonstrated; reliability remains unchanged. | Needs reliable anti-join, unmatched-record, and NULL/count handling. | 31 | 2026-07-26 15:36:55 |
-| DOCUMENTATION | Documentation | 3.0 | 2.5 | medium | diagnostic_pending | Evidence from README files, run instructions, project summaries, assumptions, limitations, and generated profile documents. | Needs concise project documentation rewrite and runbook diagnostic. | 8 | 2026-07-26 15:36:55 |
-| ETL_PIPELINES | ETL & Data Pipelines | 3.0 | 2.0 | low | diagnostic_pending | Evidence from raw-to-table loading, CSV exports, generated data, report creation, and script-based project workflows. | Needs stronger ETL evidence: raw to bronze/silver/gold or raw to clean to report pipeline with validation and logging. | 9 | 2026-07-26 15:36:55 |
-| GEOSPATIAL | Geospatial Analytics | 2.0 | 1.0 | low | diagnostic_pending | Evidence from GeoPandas loading, CRS handling, geographic merging, and Plotly choropleth mapping. | Needs independent geospatial cleanup and map explanation diagnostic. | 10 | 2026-07-26 15:36:55 |
-| LINUX_SYSTEMS | Linux & Systems | 2.0 | 1.5 | low | diagnostic_pending | Evidence from Linux terminal use, project execution, shell scripts, and environment handling. | Needs practical file/process/permissions/command diagnostic. | 11 | 2026-07-26 15:36:55 |
-| MATH_STATS | Math & Statistics | 2.0 | 1.0 | low | diagnostic_pending | Evidence from ML metrics exposure and ongoing math study. | Needs practical statistics diagnostic for distributions, averages, variance, correlation, hypothesis testing basics, and model evaluation. | 12 | 2026-07-26 15:36:55 |
-| ML | Machine Learning | 2.5 | 1.5 | low | diagnostic_pending | Evidence from scikit-learn classifier workflow, train/test split, metrics, confusion matrix, prediction probability, and joblib model persistence. | Needs ML concept diagnostic focused on leakage, metrics, train/test split, and interpretation. | 13 | 2026-07-26 15:36:55 |
-| MLOPS | ML Operations | 1.0 | 0.5 | low | not_started | Minimal evidence from joblib model persistence and Docker exposure. | Needs model packaging, inference API, reproducibility, and monitoring basics if ML branch becomes active. | 14 | 2026-07-26 15:36:55 |
-| NETWORKING_SECURITY | Networking & Security Basics | 0.5 | 0.0 | low | not_started | Minimal indirect exposure through APIs and local services. | Needs HTTP, ports, environment variables, secrets, IAM/security basics if cloud branch becomes active. | 15 | 2026-07-26 15:36:55 |
-| PROJECT_REASONING | Project Reasoning | 3.0 | 3.0 | medium | updated_by_evaluation | Evaluation 002: demonstrated project flow, table relationships, data origins, and synthetic-data limitations. | A future unassisted project explanation would increase confidence. | 30 | 2026-07-26 15:36:55 |
-| PYTHON_DATA_WORK | Python Data Work | 3.5 | 2.5 | medium | diagnostic_pending | Evidence from Python scripts for data generation, CSV handling, pandas workflows, exports, and project automation. | Needs independent pandas/Python diagnostic without full solution scaffolding. | 17 | 2026-07-26 15:36:55 |
-| REPORTING | Reporting & BI | 3.0 | 2.5 | medium | diagnostic_pending | Evidence from CSV reports, revenue summaries, charts, and written observations. | Needs stronger spreadsheet/BI reporting diagnostic with pivot tables, charts, and metric interpretation. | 18 | 2026-07-26 15:36:55 |
-| SQL_DATABASES | SQL & Databases | 3.0 | 3.0 | medium | updated_by_evaluation | Evaluation 002: basic reporting joins, aggregation, date grouping, filtering, duplicate detection, and revenue calculations completed with acknowledged assistance. | Needs anti-joins, NULL/count behavior, CTEs, window functions, and top-per-group practice before an independent SQL pass. | 29 | 2026-07-26 15:36:55 |
-| SYNTHETIC_DATA | Synthetic Data | 3.0 | 2.0 | medium | diagnostic_pending | Evidence from synthetic customers, sales, monitoring records, student records, dropout simulation, and weighted sampling. | Needs clearer documentation of assumptions, distributions, and limitations. | 20 | 2026-07-26 15:36:55 |
-| TESTING_DEBUGGING | Testing & Debugging | 2.0 | 2.0 | low | updated_by_evaluation | Evaluation 002: described an incremental method for debugging a join that returns zero rows. | Debugging reasoning was verbal; independent execution and repair evidence remain pending. | 32 | 2026-07-26 15:36:55 |
-| VISUALIZATION | Data Visualization | 2.5 | 1.5 | low | diagnostic_pending | Evidence from matplotlib charts and Plotly geospatial visualizations. | Needs chart selection, chart interpretation, and dashboard-style reporting practice. | 22 | 2026-07-26 15:36:55 |
-| WORKFLOW_TOOLS | Workflow Tools | 2.5 | 1.5 | low | diagnostic_pending | Evidence from GitHub project organization, Docker Compose, Dockerfile exposure, Linux terminal usage, requirements files, and run scripts. | Needs terminal/Git/Docker workflow diagnostic. | 23 | 2026-07-26 15:36:55 |
+| APIS_WEB_APPS | APIs & Web Apps | 2.5 | 1.5 | low | diagnostic_pending | Evidence from FastAPI endpoints, JSON responses, Flask dashboard routes, and simple templates. | Needs endpoint explanation, debugging, and small modification diagnostic. | 1 | 2026-07-27 20:43:04 |
+| BIG_DATA_DATA_LAKE | Big Data & Data Lake | 0.0 | 0.0 | low | not_started | No accepted evidence yet. | Needs PySpark, Parquet, partitioning, and data lake layer evidence if this branch becomes active. | 2 | 2026-07-27 20:43:04 |
+| BUSINESS_ANALYSIS | Business Analysis | 2.0 | 1.5 | low | diagnostic_pending | Evidence from basic report interpretation and metric summaries. | Needs stronger KPI interpretation, stakeholder-style questions, and business-rule translation. | 3 | 2026-07-27 20:43:04 |
+| CLOUD_DATA_PLATFORMS | Cloud Data Platforms | 0.0 | 0.0 | low | not_started | No accepted evidence yet. | Needs cloud storage/database/warehouse basics if this branch becomes active. | 4 | 2026-07-27 20:43:04 |
+| CONTAINERS_CI_CD | Containers & CI/CD | 2.0 | 1.0 | low | diagnostic_pending | Evidence from Dockerfile, Docker Compose, and project containerization exposure. | Needs container build/run/debug and simple CI validation evidence. | 5 | 2026-07-27 20:43:04 |
+| DATA_MODELING | Data Modeling | 2.5 | 1.5 | low | diagnostic_pending | Evidence from relational schema creation, primary keys, foreign keys, product/customer/sales structure, and basic relationships. | Needs data modeling diagnostic covering grain, keys, normalization, facts/dimensions, and schema explanation. | 6 | 2026-07-27 20:43:04 |
+| DATA_QUALITY | Data Quality | 3.0 | 2.0 | medium | diagnostic_pending | Evidence from invalid-value checks, missing reference checks, sale-date checks, duplicate-style validation, and synthetic-data limitations. | Needs independent data-quality diagnostic with messy data and reconciliation checks. | 7 | 2026-07-27 20:43:04 |
+| DOCUMENTATION | Documentation | 3.0 | 2.5 | medium | diagnostic_pending | Evidence from README files, run instructions, project summaries, assumptions, limitations, and generated profile documents. | Needs concise project documentation rewrite and runbook diagnostic. | 8 | 2026-07-27 20:43:04 |
+| ETL_PIPELINES | ETL & Data Pipelines | 3.0 | 2.0 | low | diagnostic_pending | Evidence from raw-to-table loading, CSV exports, generated data, report creation, and script-based project workflows. | Needs stronger ETL evidence: raw to bronze/silver/gold or raw to clean to report pipeline with validation and logging. | 9 | 2026-07-27 20:43:04 |
+| GEOSPATIAL | Geospatial Analytics | 2.0 | 1.0 | low | diagnostic_pending | Evidence from GeoPandas loading, CRS handling, geographic merging, and Plotly choropleth mapping. | Needs independent geospatial cleanup and map explanation diagnostic. | 10 | 2026-07-27 20:43:04 |
+| LINUX_SYSTEMS | Linux & Systems | 2.0 | 1.5 | low | diagnostic_pending | Evidence from Linux terminal use, project execution, shell scripts, and environment handling. | Needs practical file/process/permissions/command diagnostic. | 11 | 2026-07-27 20:43:04 |
+| MATH_STATS | Math & Statistics | 2.0 | 1.0 | low | diagnostic_pending | Evidence from ML metrics exposure and ongoing math study. | Needs practical statistics diagnostic for distributions, averages, variance, correlation, hypothesis testing basics, and model evaluation. | 12 | 2026-07-27 20:43:04 |
+| ML | Machine Learning | 2.5 | 1.5 | low | diagnostic_pending | Evidence from scikit-learn classifier workflow, train/test split, metrics, confusion matrix, prediction probability, and joblib model persistence. | Needs ML concept diagnostic focused on leakage, metrics, train/test split, and interpretation. | 13 | 2026-07-27 20:43:04 |
+| MLOPS | ML Operations | 1.0 | 0.5 | low | not_started | Minimal evidence from joblib model persistence and Docker exposure. | Needs model packaging, inference API, reproducibility, and monitoring basics if ML branch becomes active. | 14 | 2026-07-27 20:43:04 |
+| NETWORKING_SECURITY | Networking & Security Basics | 0.5 | 0.0 | low | not_started | Minimal indirect exposure through APIs and local services. | Needs HTTP, ports, environment variables, secrets, IAM/security basics if cloud branch becomes active. | 15 | 2026-07-27 20:43:04 |
+| PROJECT_REASONING | Project Reasoning | 3.0 | 2.0 | medium | diagnostic_pending | Evidence from multiple project artifacts and ability to discuss file roles, data flow, and project limitations. | Needs direct project explanation diagnostic using the commerce pipeline or another selected project. | 16 | 2026-07-27 20:43:04 |
+| PYTHON_DATA_WORK | Python Data Work | 3.5 | 2.5 | medium | diagnostic_pending | Evidence from Python scripts for data generation, CSV handling, pandas workflows, exports, and project automation. | Needs independent pandas/Python diagnostic without full solution scaffolding. | 17 | 2026-07-27 20:43:04 |
+| REPORTING | Reporting & BI | 3.0 | 2.5 | medium | diagnostic_pending | Evidence from CSV reports, revenue summaries, charts, and written observations. | Needs stronger spreadsheet/BI reporting diagnostic with pivot tables, charts, and metric interpretation. | 18 | 2026-07-27 20:43:04 |
+| SQL_DATABASES | SQL & Databases | 3.0 | 2.0 | medium | diagnostic_pending | Evidence from PostgreSQL/SQLite projects, schema creation, joins, aggregations, report queries, and quality checks. | Needs independent SQL diagnostic covering joins, aggregation, CTEs, date grouping, validation queries, and query explanation. | 19 | 2026-07-27 20:43:04 |
+| SYNTHETIC_DATA | Synthetic Data | 3.0 | 2.0 | medium | diagnostic_pending | Evidence from synthetic customers, sales, monitoring records, student records, dropout simulation, and weighted sampling. | Needs clearer documentation of assumptions, distributions, and limitations. | 20 | 2026-07-27 20:43:04 |
+| TESTING_DEBUGGING | Testing & Debugging | 2.0 | 1.0 | low | diagnostic_pending | Evidence from some error handling, validation checks, connection checks, and project debugging. | Needs explicit tests, debugging notes, error tracing, and regression checks. | 21 | 2026-07-27 20:43:04 |
+| VISUALIZATION | Data Visualization | 2.5 | 1.5 | low | diagnostic_pending | Evidence from matplotlib charts and Plotly geospatial visualizations. | Needs chart selection, chart interpretation, and dashboard-style reporting practice. | 22 | 2026-07-27 20:43:04 |
+| WORKFLOW_TOOLS | Workflow Tools | 2.5 | 1.5 | low | diagnostic_pending | Evidence from GitHub project organization, Docker Compose, Dockerfile exposure, Linux terminal usage, requirements files, and run scripts. | Needs terminal/Git/Docker workflow diagnostic. | 23 | 2026-07-27 20:43:04 |
 
 ## Evaluation History
 
-| id | name | result | score | assistance_level | submission_text | created_at |
-| --- | --- | --- | --- | --- | --- | --- |
-| sql_independence_001 | SQL Independence Evaluation 001 | partial | 5.0 | assisted_acknowledged | See proofs/001_sql_data_quality_modeling.md. | 2026-07-26 15:36:55 |
-| sql_independence_002 | Commerce SQL and Project Reasoning Evaluation | partial | 7.8 | assisted_acknowledged | See proofs/002_commerce_sql_project_reasoning.md. | 2026-07-26 15:36:55 |
+_No rows._
 
 ## Evaluation Skill Results
 
-| diagnostic_id | skill_cluster_id | result | score | notes |
-| --- | --- | --- | --- | --- |
-| sql_independence_001 | DATA_MODELING | partial | 5.0 | Improved table relationship logic among customers, orders, order_items, and products. |
-| sql_independence_001 | DATA_QUALITY | partial | 5.0 | Corrected missing-reference checks and invalid-value filtering after feedback. |
-| sql_independence_001 | PROJECT_REASONING | partial | 5.0 | Improved reasoning about valid rows, missing references, and revenue eligibility. |
-| sql_independence_001 | SQL_DATABASES | partial | 5.0 | Corrected JOIN, LEFT JOIN, aliasing, and filtering patterns after feedback. |
-| sql_independence_001 | TESTING_DEBUGGING | partial | 5.0 | Repaired syntax, alias, join, and condition errors through attempts. |
-| sql_independence_002 | DATA_QUALITY | partial | 6.5 | Correct duplicate and cross-table date checks; unmatched-record and NULL handling remain unreliable. |
-| sql_independence_002 | PROJECT_REASONING | passed | 8.0 | Explained project flow, table relationships, data origins, and synthetic-data limitations. |
-| sql_independence_002 | SQL_DATABASES | partial | 7.8 | Reliable basic joins, aggregation, date grouping, filtering, and duplicate checks; anti-joins and top-per-group logic remain weak. |
-| sql_independence_002 | TESTING_DEBUGGING | partial | 6.5 | Described a reasonable incremental join-debugging process, but execution evidence was not collected. |
+_No rows._
 
 ## Targets
 
