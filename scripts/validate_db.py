@@ -31,7 +31,7 @@ def main():
         "eval_[0-9][0-9][0-9][0-9].sql"
         )
     )
-
+    conn = sqlite3.connect(DB_PATH)
     diagnostic_count = fetch_all(
         conn,
         "SELECT COUNT(*) FROM diagnostics;",
@@ -46,7 +46,7 @@ def main():
     if not DB_PATH.exists():
         fail(["roadmap.db does not exist"])
 
-    conn = sqlite3.connect(DB_PATH)
+    
     conn.execute("PRAGMA foreign_keys = ON")
 
     fk_errors = fetch_all(conn, "PRAGMA foreign_key_check;")
