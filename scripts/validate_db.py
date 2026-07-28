@@ -26,6 +26,40 @@ def column_names(conn, table_name: str) -> set[str]:
 
 def main():
     errors = []
+    def main():
+    errors = []
+
+    if not DB_PATH.exists():
+        fail(["roadmap.db does not exist"])
+
+    evaluation_files = sorted(
+        (ROOT / "updates_sql").glob(
+            "eval_[0-9][0-9][0-9][0-9].sql"
+        )
+    )
+
+    if not evaluation_files:
+        errors.append(
+            "No evaluation SQL files found in updates_sql/"
+        )
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("PRAGMA foreign_keys = ON")
+
+    diagnostic_count = fetch_all(
+        conn,
+        "SELECT COUNT(*) FROM diagnostics;",
+    )[0][0]
+
+    if diagnostic_count != len(evaluation_files):
+        errors.append(
+            "Evaluation replay mismatch: "
+            f"{len(evaluation_files)} SQL files but "
+            f"{diagnostic_count} diagnostics in the database"
+        )
+    
+    
+    
     evaluation_files = sorted(
     (ROOT / "updates_logs").glob(
         "eval_[0-9][0-9][0-9][0-9].sql"

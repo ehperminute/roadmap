@@ -4,7 +4,9 @@ import sqlite3
 ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = ROOT / "roadmap.db"
 TEMP_DB_PATH = ROOT / "roadmap.db.tmp"
-EVALUATIONS_DIR = ROOT / "updates_logs"
+EVALUATIONS_DIR = ROOT / "updates_sql"
+EVALUATION_PATTERN = "eval_[0-9][0-9][0-9][0-9].sql"
+
 
 BASE_SQL_FILES = [
     ROOT / "sql" / "schema.sql",
@@ -22,14 +24,22 @@ def run_sql_file(conn: sqlite3.Connection, path: Path) -> None:
 
 
 def evaluation_files() -> list[Path]:
-    # Only canonical evaluation files are replayed.
-    return sorted(EVALUATIONS_DIR.glob("eval_[0-9][0-9][0-9].sql"))
+    return sorted(EVALUATIONS_DIR.glob(EVALUATION_PATTERN))
 
-
+    
 def main() -> None:
-    # Build a complete replacement first so the existing database survives
-    # any SQL or validation failure.
-    TEMP_DB_PATH.unlink(missing_ok=True)
+    files = evaluation_files()
+
+    if not files:
+        raise RuntimeError(
+            f"No evaluation SQL files found in {EVALUATIONS_DIR}"
+        )
+
+    print(f"Found {len(files)} evaluation SQL files")
+
+    for evaluation_file in files:
+        run_sql_file(conn, evaluation_file)
+        TEMP_DB_PATH.unlink(missing_ok=True)
 
     conn = sqlite3.connect(TEMP_DB_PATH)
     conn.execute("PRAGMA foreign_keys = ON")
