@@ -1,12 +1,13 @@
 from pathlib import Path
 import sqlite3
 
+
 ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = ROOT / "roadmap.db"
 TEMP_DB_PATH = ROOT / "roadmap.db.tmp"
+
 EVALUATIONS_DIR = ROOT / "updates_sql"
 EVALUATION_PATTERN = "eval_[0-9][0-9][0-9][0-9].sql"
-
 
 BASE_SQL_FILES = [
     ROOT / "sql" / "schema.sql",
@@ -35,25 +36,30 @@ def main() -> None:
             f"No evaluation SQL files found in {EVALUATIONS_DIR}"
         )
 
-    print(f"Found {len(files)} evaluation SQL files")
-
-    for evaluation_file in files:
-        run_sql_file(conn, evaluation_file)
-        TEMP_DB_PATH.unlink(missing_ok=True)
+    # Remove a stale temporary database from an earlier failed run.
+    TEMP_DB_PATH.unlink(missing_ok=True)
 
     conn = sqlite3.connect(TEMP_DB_PATH)
     conn.execute("PRAGMA foreign_keys = ON")
 
     try:
+        # The schema and baseline must exist before evaluations are applied.
         for sql_file in BASE_SQL_FILES:
             run_sql_file(conn, sql_file)
 
-        for evaluation_file in evaluation_files():
+        print(f"Found {len(files)} evaluation SQL files")
+
+        for evaluation_file in files:
             run_sql_file(conn, evaluation_file)
 
-        fk_errors = conn.execute("PRAGMA foreign_key_check").fetchall()
+        fk_errors = conn.execute(
+            "PRAGMA foreign_key_check"
+        ).fetchall()
+
         if fk_errors:
-            raise RuntimeError(f"Foreign-key validation failed: {fk_errors}")
+            raise RuntimeError(
+                f"Foreign-key validation failed: {fk_errors}"
+            )
 
         conn.commit()
 
@@ -64,6 +70,8 @@ def main() -> None:
 
     else:
         conn.close()
+
+        # Replace the existing database only after the complete rebuild succeeds.
         TEMP_DB_PATH.replace(DB_PATH)
         print(f"Database rebuilt: {DB_PATH}")
 
